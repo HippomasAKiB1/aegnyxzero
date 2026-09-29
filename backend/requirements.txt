@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pytest
+httpx
+python-dotenv
+openai
+langchain
+langchain-community
+langgraph
+chromadb
+sentence-transformers
+pyyaml
