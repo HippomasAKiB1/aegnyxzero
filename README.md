@@ -386,14 +386,6 @@ What AegnyxZero cannot tell you is shown in a persistent panel in the app.
 
 We are ready for the NASA Space Apps Challenge 2026, Dhaka Local Event.
 
-| Name | Role |
-|------|------|
-| **Akib Hasan Pyil** | Team Leader, Full-Stack Architect, AI Pipeline |
-| **Nazat E Rose Rhythm** | Frontend and UX |
-| **Jafir Islam Siam** | Data Curation and Engineering |
-| **Tauhid Sarker** | Backend and API |
-| **Arnob Das** | Data Analysis and QA |
-
 ![Turtlers](./team_image.png)
 
 ---
