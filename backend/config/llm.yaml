@@ -1,0 +1,23 @@
+openrouter:
+  base_url: "https://openrouter.ai/api/v1"
+  model: "openrouter/free"
+  api_key_env: "OPENROUTER_API_KEY"
+  timeout_s: 30
+
+gemini:
+  base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  model: "gemini-3.8-flash"
+  api_key_env: "GEMINI_API_KEY"
+  timeout_s: 30
+
+groq:
+  base_url: "https://api.groq.com/openai/v1"
+  model: "llama-3.1-8b-instant"
+  api_key_env: "GROQ_API_KEY"
+  timeout_s: 30
+
+ollama:
+  base_url: "http://localhost:11434/v1"
+  model: "llama3.2"
+  api_key_env: "OLLAMA_API_KEY"
+  timeout_s: 60
