@@ -1,0 +1,6 @@
+id,title,authors,year,doi,url,type,license,local_path
+src_bass,"BASS-II: Burning and Suppression of Solids – Experiments in Microgravity","S. L. Olson, P. V. Ferkul, J. S. T'ien",2015,,https://ntrs.nasa.gov/citations/20150008962,report,public domain,data/raw/bass_ii.pdf
+src_saffire,"Saffire Experiment Series: Large-Scale Spacecraft Fire Safety Tests","D. L. Urban, G. A. Ruff, J. W. Brooker et al.",2019,10.2514/6.2019-0581,https://ntrs.nasa.gov/search?q=saffire,report,public domain,data/raw/saffire.pdf
+src_sofie,"SoFIE-GEL: Solid Fuel Ignition and Extinction – Growth and Extinction Limits","P. V. Ferkul, S. L. Olson",2022,,https://www.nasa.gov/mission/station/research-explorer/investigation/sofie-gel/,dataset,public domain,
+src_drop,"Near-Limit Flame Spread over Thin Cellulose in Microgravity (Drop Tower)","S. L. Olson",1987,,https://ntrs.nasa.gov/citations/19880006471,report,public domain,data/raw/drop_tower.pdf
+src_explore,"Flammability of Polymers in Exploration Atmospheres","S. L. Olson, M. C. Johnston, F. J. Miller",2008,,https://ntrs.nasa.gov/citations/20080034883,report,public domain,data/raw/exploration_atm.pdf
