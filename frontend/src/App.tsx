@@ -7,6 +7,7 @@ import { ComparisonCharts } from './components/ComparisonCharts'
 import { CoverageMap } from './components/CoverageMap'
 import { AskAIDrawer } from './components/AskAIDrawer'
 import { ScoreFormulaModal, ReviewLogModal, AboutModal } from './components/Modals'
+import { BandBadge, ConfidenceMeter } from './components/ui'
 import type {
   MaterialRanking,
   Experiment,
@@ -186,8 +187,17 @@ function App() {
   const selectedMaterialData =
     rankings.find((r) => r.material_name === selectedMaterial) || null
 
+  // Derived inline presentational calculation for verdict strip (PRD Section 4)
+  const sufficient = rankings.filter((r) => !r.insufficient_evidence && r.score !== null)
+  const lowestRisk = sufficient.length > 0
+    ? [...sufficient].sort((a, b) => (a.score ?? 999) - (b.score ?? 999))[0]
+    : null
+  const highestRisk = sufficient.length > 0
+    ? [...sufficient].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))[0]
+    : null
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans antialiased selection:bg-orange-500/30 selection:text-orange-200">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] flex flex-col font-sans antialiased selection:bg-white/[0.15]">
       {/* ─── Navigation Header ─── */}
       <Header
         isBackendConnected={isBackendConnected}
@@ -199,8 +209,8 @@ function App() {
         askAIOpen={isAskAIOpen}
       />
 
-      {/* ─── Main Content Canvas ─── */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+      {/* ─── Main Content Canvas: max-w-[1600px] ─── */}
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-6 py-4 space-y-3">
         {/* Conditions Control Panel & Presets */}
         <ConditionsBar
           conditions={conditions}
@@ -208,10 +218,41 @@ function App() {
           onExport={handleExport}
         />
 
-        {/* Dashboard 2-Column Responsive Workspace */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Verdict Strip: Answers the key question in 30 seconds */}
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[8px] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[var(--text-secondary)]">
+              At <span className="text-[var(--text-primary)] font-semibold">{conditions.o2_percent.toFixed(1)}</span> % O₂
+              {' '}·{' '}
+              <span className="text-[var(--text-primary)] font-semibold">{conditions.pressure_kpa.toFixed(1)}</span> kPa
+              {' '}·{' '}
+              <span className="text-[var(--text-primary)] font-semibold">{conditions.flow_velocity_cm_s.toFixed(1)}</span> cm/s
+            </span>
+          </div>
+          {lowestRisk && highestRisk ? (
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[var(--text-tertiary)] uppercase text-[11px] tracking-[0.08em] font-medium">Lowest risk:</span>
+                <span className="font-medium text-[var(--text-primary)]">{lowestRisk.material_name}</span>
+                <BandBadge band={lowestRisk.band} />
+                <ConfidenceMeter level={lowestRisk.confidence} showLabel={false} />
+              </div>
+              <span className="text-[var(--border-strong)]">·</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[var(--text-tertiary)] uppercase text-[11px] tracking-[0.08em] font-medium">Highest:</span>
+                <span className="font-medium text-[var(--text-primary)]">{highestRisk.material_name}</span>
+                <BandBadge band={highestRisk.band} />
+              </div>
+            </div>
+          ) : (
+            <span className="text-[var(--text-tertiary)] italic">No ranking yet</span>
+          )}
+        </div>
+
+        {/* Workspace Grid (12 cols) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
           {/* Left Column: Ranked Risk Table (7 cols) */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7">
             <RankedTable
               rankings={rankings}
               selectedMaterial={selectedMaterial}
@@ -222,14 +263,17 @@ function App() {
             />
           </div>
 
-          {/* Right Column: Comparison Trends & Coverage Map (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
+          {/* Right Column: Coverage Map (5 cols) */}
+          <div className="lg:col-span-5">
+            <CoverageMap coverage={coverage} conditions={conditions} />
+          </div>
+
+          {/* Full Width Row Below: Empirical Combustion Comparison Charts (12 cols) */}
+          <div className="col-span-1 lg:col-span-12">
             <ComparisonCharts
               experiments={experiments}
               selectedMaterials={chartMaterials}
             />
-
-            <CoverageMap coverage={coverage} conditions={conditions} />
           </div>
         </div>
       </main>
@@ -269,17 +313,17 @@ function App() {
       />
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-border/80 px-6 py-4 mt-8 bg-card/40 backdrop-blur text-xs text-muted-foreground">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="border-t border-[var(--border-subtle)] px-6 py-3 mt-6 bg-[var(--bg-surface)] text-xs text-[var(--text-tertiary)]">
+        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-foreground">AegnyxZero</span>
+            <span className="font-semibold text-[var(--text-primary)]">AegnyxZero</span>
             <span>&middot;</span>
             <span>NASA Space Apps Challenge 2026</span>
             <span>&middot;</span>
-            <span className="font-mono text-[11px] text-orange-400">Team Turtlers (Dhaka)</span>
+            <span className="font-mono text-[11px] text-[var(--text-secondary)]">Team Turtlers (Dhaka)</span>
           </div>
 
-          <div className="flex items-center gap-3 text-[11px]">
+          <div className="flex items-center gap-3 text-[11px] font-mono">
             <span>Problem 8: Flame in Freefall</span>
             <span>&middot;</span>
             <span>Deterministic Math &middot; Zero Hallucination</span>
