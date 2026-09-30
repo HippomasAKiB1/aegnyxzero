@@ -1,15 +1,13 @@
 import React, { useState } from 'react'
 import {
-  ShieldAlert,
-  Flame,
   AlertTriangle,
-  CheckCircle,
-  HelpCircle,
+  ChevronDown,
+  ChevronUp,
   ChevronRight,
-  Info,
-  CheckSquare,
-  Square,
+  HelpCircle,
+  Check,
 } from 'lucide-react'
+import { BandBadge, ConfidenceMeter, SectionHeader } from './ui'
 import type { MaterialRanking } from '../types'
 
 interface RankedTableProps {
@@ -67,148 +65,98 @@ export const RankedTable: React.FC<RankedTableProps> = ({
     }
   }
 
-  const getBandBadge = (band: string | null) => {
-    switch (band) {
-      case 'Severe':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/30">
-            <Flame className="h-3 w-3 text-red-400 animate-pulse" />
-            <span>Severe</span>
-          </span>
-        )
-      case 'High':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30">
-            <ShieldAlert className="h-3 w-3 text-orange-400" />
-            <span>High</span>
-          </span>
-        )
-      case 'Moderate':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-            <AlertTriangle className="h-3 w-3 text-amber-300" />
-            <span>Moderate</span>
-          </span>
-        )
-      case 'Low':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-            <CheckCircle className="h-3 w-3 text-emerald-400" />
-            <span>Low</span>
-          </span>
-        )
-      default:
-        return (
-          <span className="text-xs text-muted-foreground italic">N/A</span>
-        )
+  const renderSortChevron = (field: 'rank' | 'score' | 'name' | 'confidence') => {
+    if (sortField !== field) {
+      return <span className="w-3 h-3 inline-block opacity-0 group-hover:opacity-40">↓</span>
     }
-  }
-
-  const getConfidenceBadge = (conf: string) => {
-    switch (conf) {
-      case 'High':
-        return (
-          <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
-            title="≥ 3 distinct NASA investigations verify this regime"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-            <span>High Conf</span>
-          </span>
-        )
-      case 'Medium':
-        return (
-          <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/15 text-blue-300 border border-blue-500/30"
-            title="2 distinct investigations support this result"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            <span>Med Conf</span>
-          </span>
-        )
-      case 'Low':
-        return (
-          <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-purple-500/15 text-purple-300 border border-purple-500/30"
-            title="1 investigation only — corroboration required"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
-            <span>Low Conf</span>
-          </span>
-        )
-      default:
-        return (
-          <span className="text-[11px] text-muted-foreground">None</span>
-        )
-    }
+    return sortAsc ? (
+      <ChevronUp className="w-3 h-3 text-[var(--text-primary)]" />
+    ) : (
+      <ChevronDown className="w-3 h-3 text-[var(--text-primary)]" />
+    )
   }
 
   return (
-    <div className="bg-card/70 border border-border rounded-xl backdrop-blur-sm shadow-sm overflow-hidden flex flex-col">
-      {/* Table Title and Controls */}
-      <div className="p-4 lg:p-5 border-b border-border/80 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
-              <span>Flammability Risk Ranking</span>
-              <span className="text-xs font-mono font-normal text-muted-foreground">
-                ({sufficient.length} ranked materials)
-              </span>
-            </h2>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Transparent relative scoring computed by deterministic pure-Python engine.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[8px] p-3.5 space-y-3">
+      {/* Panel Header */}
+      <SectionHeader
+        title={`Flammability Risk Ranking (${sufficient.length} materials)`}
+        action={
           <button
             onClick={onOpenFormula}
-            className="text-xs text-orange-400/90 hover:text-orange-300 flex items-center gap-1 font-medium transition underline-offset-2 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            <HelpCircle className="h-3.5 w-3.5" />
-            <span>How is this calculated?</span>
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Score Formula</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Table Content */}
-      <div className="overflow-x-auto flex-1">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-secondary/40 text-muted-foreground border-b border-border text-[11px] uppercase tracking-wider select-none font-semibold">
-            <tr>
-              <th className="py-3 px-3 w-10 text-center">Plot</th>
-              <th
-                onClick={() => handleSort('rank')}
-                className="py-3 px-3 cursor-pointer hover:text-foreground transition w-14"
-              >
-                #
+      {/* Table Canvas */}
+      <div className="overflow-x-auto border-t border-[var(--border-subtle)]">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-[var(--border-default)] select-none">
+              <th className="py-2 px-2.5 w-8 text-center text-xs font-medium text-[var(--text-tertiary)]">
+                Plot
               </th>
-              <th
-                onClick={() => handleSort('name')}
-                className="py-3 px-4 cursor-pointer hover:text-foreground transition"
-              >
-                Material
+              <th className="py-2 px-2.5 w-12">
+                <button
+                  onClick={() => handleSort('rank')}
+                  className={`group flex items-center gap-1 text-xs font-medium focus-visible:outline-none ${
+                    sortField === 'rank' ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <span>#</span>
+                  {renderSortChevron('rank')}
+                </button>
               </th>
-              <th
-                onClick={() => handleSort('score')}
-                className="py-3 px-4 cursor-pointer hover:text-foreground transition w-44"
-              >
-                Risk Score
+              <th className="py-2 px-3">
+                <button
+                  onClick={() => handleSort('name')}
+                  className={`group flex items-center gap-1 text-xs font-medium focus-visible:outline-none ${
+                    sortField === 'name' ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <span>Material</span>
+                  {renderSortChevron('name')}
+                </button>
               </th>
-              <th className="py-3 px-3">Band</th>
-              <th
-                onClick={() => handleSort('confidence')}
-                className="py-3 px-3 cursor-pointer hover:text-foreground transition"
-              >
-                Confidence
+              <th className="py-2 px-3 w-40 text-right">
+                <button
+                  onClick={() => handleSort('score')}
+                  className={`group inline-flex items-center gap-1 text-xs font-medium focus-visible:outline-none ${
+                    sortField === 'score' ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <span>Risk Score</span>
+                  {renderSortChevron('score')}
+                </button>
               </th>
-              <th className="py-3 px-3 text-center">Runs</th>
-              <th className="py-3 px-3 text-center">Sources</th>
-              <th className="py-3 px-4 text-right">Evidence</th>
+              <th className="py-2 px-3 text-xs font-medium text-[var(--text-tertiary)]">Band</th>
+              <th className="py-2 px-3">
+                <button
+                  onClick={() => handleSort('confidence')}
+                  className={`group flex items-center gap-1 text-xs font-medium focus-visible:outline-none ${
+                    sortField === 'confidence' ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <span>Confidence</span>
+                  {renderSortChevron('confidence')}
+                </button>
+              </th>
+              <th className="py-2 px-2.5 text-right font-mono text-xs font-medium text-[var(--text-tertiary)]">
+                Runs
+              </th>
+              <th className="py-2 px-2.5 text-right font-mono text-xs font-medium text-[var(--text-tertiary)]">
+                Sources
+              </th>
+              <th className="py-2 px-3 text-right text-xs font-medium text-[var(--text-tertiary)]">
+                Inspect
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/50">
+          <tbody>
             {sortedSufficient.map((mat) => {
               const isSelected = selectedMaterial === mat.material_name
               const isCharted = chartMaterials.includes(mat.material_name)
@@ -218,93 +166,99 @@ export const RankedTable: React.FC<RankedTableProps> = ({
                 <tr
                   key={mat.material_name}
                   onClick={() => onSelectMaterial(mat.material_name)}
-                  className={`group cursor-pointer transition-colors ${
+                  className={`group h-9 cursor-pointer border-b border-[rgba(255,255,255,0.05)] text-[13px] transition-all duration-150 select-none ${
                     isSelected
-                      ? 'bg-orange-500/10 hover:bg-orange-500/15'
-                      : 'hover:bg-secondary/30'
+                      ? 'bg-[var(--chrome-active-bg)] shadow-[inset_2px_0_0_var(--text-primary)]'
+                      : 'hover:bg-[var(--bg-elevated)] hover:shadow-[inset_2px_0_0_var(--border-strong)]'
                   }`}
                 >
-                  {/* Chart Checkbox */}
+                  {/* Plot checkbox */}
                   <td
-                    className="py-3 px-3 text-center"
+                    className="py-1 px-2.5 text-center"
                     onClick={(e) => {
                       e.stopPropagation()
                       onToggleChartMaterial(mat.material_name)
                     }}
                   >
                     <button
-                      className="text-muted-foreground hover:text-orange-400 transition"
-                      title={isCharted ? 'Remove from charts' : 'Compare on charts'}
+                      className={`w-3.5 h-3.5 rounded-[2px] border flex items-center justify-center transition-colors ${
+                        isCharted
+                          ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--bg-canvas)]'
+                          : 'border-[var(--border-default)] hover:border-[var(--text-secondary)] bg-transparent'
+                      }`}
+                      title={isCharted ? 'Remove from chart comparison' : 'Compare on charts'}
                     >
-                      {isCharted ? (
-                        <CheckSquare className="h-4 w-4 text-orange-400" />
-                      ) : (
-                        <Square className="h-4 w-4 text-muted-foreground/60" />
-                      )}
+                      {isCharted && <Check className="w-3 h-3 stroke-[3]" />}
                     </button>
                   </td>
 
                   {/* Rank */}
-                  <td className="py-3 px-3 font-mono font-bold text-muted-foreground group-hover:text-foreground">
+                  <td className="py-1 px-2.5 font-mono text-xs text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)]">
                     #{mat.rank}
                   </td>
 
                   {/* Material Name */}
-                  <td className="py-3 px-4 font-medium text-foreground">
-                    <div className="flex items-center gap-2">
-                      <span className="group-hover:text-orange-400 transition">
-                        {mat.material_name}
-                      </span>
-                    </div>
+                  <td className="py-1 px-3 font-medium text-[var(--text-primary)]">
+                    <span>{mat.material_name}</span>
                   </td>
 
-                  {/* Score bar */}
-                  <td className="py-3 px-4">
+                  {/* Risk Score: mono 14px/600 right-aligned + 3px bar on fixed 0-100 scale */}
+                  <td className="py-1 px-3">
                     <div className="flex items-center gap-2.5">
-                      <span className="font-mono font-bold text-xs w-8 text-foreground">
+                      <span className="font-mono text-sm font-semibold w-8 text-right text-[var(--text-primary)]">
                         {scoreVal.toFixed(1)}
                       </span>
-                      <div className="flex-1 bg-secondary rounded-full h-2 overflow-hidden">
+                      <div className="relative flex-1 h-[3px] bg-white/[0.08] rounded-none overflow-hidden">
+                        {/* Hairline threshold marks at 25%, 50%, 75% */}
+                        <span className="absolute top-0 bottom-0 left-[25%] w-[1px] bg-[var(--border-strong)] z-10" />
+                        <span className="absolute top-0 bottom-0 left-[50%] w-[1px] bg-[var(--border-strong)] z-10" />
+                        <span className="absolute top-0 bottom-0 left-[75%] w-[1px] bg-[var(--border-strong)] z-10" />
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            scoreVal >= 75
-                              ? 'bg-gradient-to-r from-red-600 to-red-500'
-                              : scoreVal >= 50
-                              ? 'bg-gradient-to-r from-orange-500 to-amber-500'
-                              : scoreVal >= 25
-                              ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
-                              : 'bg-gradient-to-r from-emerald-500 to-teal-400'
-                          }`}
-                          style={{ width: `${scoreVal}%` }}
+                          className="h-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, scoreVal))}%`,
+                            backgroundColor:
+                              scoreVal >= 75
+                                ? 'var(--risk-severe)'
+                                : scoreVal >= 50
+                                ? 'var(--risk-high)'
+                                : scoreVal >= 25
+                                ? 'var(--risk-mod)'
+                                : 'var(--risk-low)',
+                          }}
                         />
                       </div>
                     </div>
                   </td>
 
                   {/* Band */}
-                  <td className="py-3 px-3">{getBandBadge(mat.band)}</td>
+                  <td className="py-1 px-3">
+                    <BandBadge band={mat.band} />
+                  </td>
 
                   {/* Confidence */}
-                  <td className="py-3 px-3">{getConfidenceBadge(mat.confidence)}</td>
+                  <td className="py-1 px-3">
+                    <ConfidenceMeter level={mat.confidence} />
+                  </td>
 
                   {/* Supporting Experiments count */}
-                  <td className="py-3 px-3 text-center font-mono text-muted-foreground">
+                  <td className="py-1 px-2.5 text-right font-mono text-xs text-[var(--text-secondary)]">
                     {mat.num_experiments}
                   </td>
 
                   {/* Distinct Sources count */}
-                  <td className="py-3 px-3 text-center font-mono text-muted-foreground">
+                  <td className="py-1 px-2.5 text-right font-mono text-xs text-[var(--text-secondary)]">
                     {mat.num_sources}
                   </td>
 
                   {/* Action / Inspect */}
-                  <td className="py-3 px-4 text-right">
+                  <td className="py-1 px-3 text-right">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         onSelectMaterial(mat.material_name)
                       }}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-400 group-hover:text-orange-300 transition"
+                      className="inline-flex items-center gap-0.5 text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                     >
                       <span>Inspect</span>
                       <ChevronRight className="h-3 w-3" />
@@ -317,31 +271,31 @@ export const RankedTable: React.FC<RankedTableProps> = ({
         </table>
       </div>
 
-      {/* Insufficient Evidence Section (US-2 AC3, FR-4) */}
+      {/* Insufficient Evidence Section (FR-4) */}
       {insufficient.length > 0 && (
-        <div className="p-4 bg-muted/20 border-t border-border/80 space-y-2.5">
-          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+        <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2 opacity-60">
+          <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--text-tertiary)]">
+            <AlertTriangle className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
             <span>Insufficient Evidence (Σ w_i &lt; 1.0)</span>
-            <span className="text-[10px] text-muted-foreground/75 font-normal">
-              — Zero hallucination rule: no score assigned when data is too sparse
+            <span className="text-[var(--text-disabled)] italic font-sans">
+              — Zero hallucination rule: no score assigned
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
             {insufficient.map((m) => (
               <div
                 key={m.material_name}
                 onClick={() => onSelectMaterial(m.material_name)}
-                className="cursor-pointer border border-dashed border-border p-2.5 rounded-lg bg-card/40 hover:bg-card hover:border-border/80 transition"
+                className="cursor-pointer border border-[var(--border-subtle)] p-2 rounded-[4px] bg-[var(--bg-inset)] hover:border-[var(--border-default)] transition-colors"
               >
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-foreground">{m.material_name}</span>
-                  <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                  <span className="font-medium text-[var(--text-primary)]">{m.material_name}</span>
+                  <span className="text-[11px] font-mono text-[var(--text-disabled)] uppercase">
                     No Score
                   </span>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1">
+                <p className="text-[12px] text-[var(--text-tertiary)] italic mt-1 line-clamp-1">
                   {m.confidence_reasons[0] || 'No experiments within proximity tolerance'}
                 </p>
               </div>
