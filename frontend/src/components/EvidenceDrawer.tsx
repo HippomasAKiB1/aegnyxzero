@@ -8,7 +8,7 @@ import {
   AlertCircle,
   Check,
 } from 'lucide-react'
-import { BandBadge, ConfidenceMeter, ValidationRow } from './ui'
+import { BandBadge, ConfidenceMeter, ValidationRow, Reticle } from './ui'
 import type { MaterialRanking, Experiment, Source } from '../types'
 
 interface EvidenceDrawerProps {
@@ -181,8 +181,9 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
             </div>
 
             {supportingExps.length === 0 ? (
-              <div className="p-4 rounded-[6px] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-tertiary)]">
-                No matching experiments found for this material in database.
+              <div className="p-4 rounded-[6px] border border-[var(--border-subtle)] text-center text-xs text-[var(--text-tertiary)] flex items-center justify-center gap-2">
+                <Reticle size={16} pulse={false} />
+                <span>No matching experiments found for this material in database.</span>
               </div>
             ) : (
               supportingExps.map((exp) => {

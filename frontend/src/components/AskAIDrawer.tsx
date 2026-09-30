@@ -5,7 +5,7 @@ import {
   CheckCircle2,
   Flag,
 } from 'lucide-react'
-import { ConfidenceMeter, ValidationPill } from './ui'
+import { ConfidenceMeter, ValidationPill, Reticle } from './ui'
 import type { AskResponse, UserConditions } from '../types'
 
 interface AskAIDrawerProps {
@@ -200,6 +200,7 @@ export const AskAIDrawer: React.FC<AskAIDrawerProps> = ({
 
             {!loading && !answer && (
               <div className="h-44 flex flex-col items-center justify-center gap-2 text-xs text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded-[6px] bg-[var(--bg-inset)] text-center p-6">
+                <Reticle size={16} pulse={false} />
                 <span className="font-sans font-medium text-[var(--text-secondary)]">
                   Ask a question above to retrieve cited empirical facts
                 </span>

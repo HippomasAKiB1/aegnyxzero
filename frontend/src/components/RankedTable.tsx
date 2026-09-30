@@ -7,7 +7,7 @@ import {
   HelpCircle,
   Check,
 } from 'lucide-react'
-import { BandBadge, ConfidenceMeter, SectionHeader } from './ui'
+import { BandBadge, ConfidenceMeter, SectionHeader, Reticle } from './ui'
 import type { MaterialRanking } from '../types'
 
 interface RankedTableProps {
@@ -157,7 +157,17 @@ export const RankedTable: React.FC<RankedTableProps> = ({
             </tr>
           </thead>
           <tbody>
-            {sortedSufficient.map((mat) => {
+            {sortedSufficient.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="py-8 text-center text-xs text-[var(--text-tertiary)]">
+                  <div className="flex items-center justify-center gap-2">
+                    <Reticle size={16} pulse={false} />
+                    <span>No ranked materials match current criteria.</span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              sortedSufficient.map((mat) => {
               const isSelected = selectedMaterial === mat.material_name
               const isCharted = chartMaterials.includes(mat.material_name)
               const scoreVal = mat.score ?? 0
@@ -266,7 +276,8 @@ export const RankedTable: React.FC<RankedTableProps> = ({
                   </td>
                 </tr>
               )
-            })}
+            })
+          )}
           </tbody>
         </table>
       </div>

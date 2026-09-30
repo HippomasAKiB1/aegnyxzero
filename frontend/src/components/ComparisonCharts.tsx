@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { Info } from 'lucide-react'
-import { SectionHeader } from './ui'
+import { SectionHeader, Reticle } from './ui'
 import type { Experiment } from '../types'
 
 interface ComparisonChartsProps {
@@ -118,8 +117,8 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
       {/* SVG Canvas Area */}
       <div className="relative mt-2 w-full overflow-x-auto flex justify-center">
         {validExps.length === 0 ? (
-          <div className="h-56 w-full flex flex-col items-center justify-center text-xs text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded-[6px] bg-[var(--bg-inset)]">
-            <Info className="h-4 w-4 mb-1 text-[var(--text-disabled)]" />
+          <div className="h-56 w-full flex flex-col items-center justify-center gap-1.5 text-xs text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded-[6px] bg-[var(--bg-inset)]">
+            <Reticle size={16} pulse={false} />
             <span>No plottable experiments for currently selected materials.</span>
             <span className="text-[11px] text-[var(--text-disabled)] mt-0.5">
               Ensure materials like PMMA, SIBAL, or Nomex are selected.
