@@ -396,7 +396,7 @@ def rank_materials(
     (insufficient evidence at the bottom).
     """
     # Optional material class filter
-    if conditions.material_class:
+    if conditions.material_class and conditions.material_class.lower() != "all":
         all_rows = [
             r for r in all_rows
             if r.material_class == conditions.material_class
