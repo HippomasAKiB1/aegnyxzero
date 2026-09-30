@@ -21,9 +21,24 @@ Built by Team Turtlers for the NASA Space Apps Challenge 2026 (Dhaka Local Event
 
 ---
 
-## Screenshot
+## Screenshots & Interface Walkthrough
 
+### Main Decision Instrument & Risk Ranking
 ![AegnyxZero Dashboard](./demo_screenshot.png)
+
+### Key Operational Phases
+
+| Phase 1: Evidence Verification Drawer | Phase 2: Grounded Ask AI (V-1 to V-7 Checks) |
+|:---:|:---:|
+| ![Evidence Verification Drawer](./demo_drawer.png) | ![Grounded Ask AI Command Palette](./demo_askai.png) |
+| *Deep-dive into contributing NASA experiments, exact page citations, and raw source quotes.* | *Plain-English synthesis guarded by deterministic validators that strip hallucinated numbers.* |
+
+<p align="center">
+  <img src="./demo_1280x720.png" alt="AegnyxZero Projector & Field View" width="800" />
+  <br/>
+  <em>Designed for presentation projectors and field laptops with high-contrast reticle typography and quiet instrument styling.</em>
+</p>
+
 
 ---
 
@@ -255,44 +270,66 @@ Data provenance is documented in [`data/SOURCES.md`](./data/SOURCES.md). We stor
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 20+
+- **Python 3.11+**
+- **Node.js 20+**
 
 ### Native setup
 
-1. **Clone the repository**
+1. **Clone the repository & configure environment**
    ```bash
    git clone https://github.com/HippomasAKiB1/aegnyxzero.git
    cd aegnyxzero
+
+   # Copy environment file
+   # Linux / macOS:
    cp .env.example .env
+   # Windows PowerShell:
+   Copy-Item .env.example .env
    ```
 
-2. **Ingest data and build the vector index**
+2. **Backend setup & dependencies**
+   ```bash
+   # Create and activate a virtual environment
+   # Linux / macOS:
+   python3 -m venv venv
+   source venv/bin/activate
+
+   # Windows PowerShell:
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
+
+   # Install Python requirements
+   pip install -r backend/requirements.txt
+   ```
+
+3. **Ingest NASA data & generate indexes**
    ```bash
    python data_pipeline/load_csv.py
    python data_pipeline/build_index.py
    python data_pipeline/export_snapshot.py
    ```
 
-3. **Start the backend**
+4. **Start the backend server**
    ```bash
    cd backend
-   pip install -r requirements.txt
    python -m uvicorn app.main:app --reload --port 8000
    ```
-   The API runs at `http://localhost:8000`. Health check: `http://localhost:8000/health`.
+   The API runs at `http://localhost:8000`. Health check: `http://localhost:8000/health`. Interactive docs: `http://localhost:8000/docs`.
 
-4. **Start the frontend**
+5. **Start the frontend (in a second terminal)**
    ```bash
-   cd ../frontend
+   cd frontend
    npm install
    npm run dev
    ```
-   Open `http://localhost:5173`.
+   Open `http://localhost:5173` in your browser.
 
 ### Demo mode (no API keys required)
 
-Set `DEMO_MODE=true` in `.env`. The app then runs entirely offline with precomputed answers and bundled snapshot data, which makes it the easiest option for reviewers and judges.
+Set `DEMO_MODE=true` in `.env`. The app then runs entirely offline with precomputed answers and bundled snapshot data, which makes it the easiest zero-friction option for reviewers and judges.
+
+For live multi-provider queries, simply provide any free API key (`GROQ_API_KEY`, `OPENROUTER_API_KEY`, `GEMINI_API_KEY`) or run local Ollama (`ollama run llama3.2`).
+
 
 ---
 
