@@ -1,5 +1,6 @@
 import React from 'react'
-import { RotateCcw, Download, Sliders, Wind, Gauge, Compass } from 'lucide-react'
+import { RotateCcw, Download } from 'lucide-react'
+import { Graticule } from './ui'
 import type { UserConditions } from '../types'
 
 interface ConditionsBarProps {
@@ -10,7 +11,7 @@ interface ConditionsBarProps {
 
 export const PRESETS = [
   {
-    name: '🌙 Lunar Habitat',
+    name: 'Lunar Habitat',
     description: '30% O2, 70 kPa reduced pressure (Exploration baseline)',
     conditions: {
       o2_percent: 30.0,
@@ -21,7 +22,7 @@ export const PRESETS = [
     },
   },
   {
-    name: '🛸 ISS Cabin',
+    name: 'ISS Cabin',
     description: 'Standard sea-level air at microgravity (21% O2, 101.3 kPa)',
     conditions: {
       o2_percent: 21.0,
@@ -32,7 +33,7 @@ export const PRESETS = [
     },
   },
   {
-    name: '⚠️ Emergency / Pre-EVA',
+    name: 'Emergency / Pre-EVA',
     description: 'Hypobaric enriched oxygen atmosphere (34% O2, 56 kPa)',
     conditions: {
       o2_percent: 34.0,
@@ -63,188 +64,216 @@ export const ConditionsBar: React.FC<ConditionsBarProps> = ({
     })
   }
 
+  const o2Percent = ((conditions.o2_percent - 10) / (45 - 10)) * 100
+  const pressurePercent = ((conditions.pressure_kpa - 30) / (110 - 30)) * 100
+  const flowPercent = ((conditions.flow_velocity_cm_s - 0) / (25 - 0)) * 100
+
   return (
-    <div className="bg-card/70 border border-border rounded-xl p-4 lg:p-5 backdrop-blur-sm shadow-sm space-y-4">
-      {/* Preset Scenario Selector Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[8px] p-3.5 space-y-3">
+      {/* Top Ribbon: Scenario Presets & Reset */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-2">
-          <Sliders className="h-4 w-4 text-orange-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[11px] uppercase tracking-[0.08em] font-medium text-[var(--text-tertiary)]">
             Scenario Presets
           </span>
+          <div className="inline-flex rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-inset)] p-0.5">
+            {PRESETS.map((p) => {
+              const isActive =
+                conditions.o2_percent === p.conditions.o2_percent &&
+                conditions.pressure_kpa === p.conditions.pressure_kpa
+
+              return (
+                <button
+                  key={p.name}
+                  onClick={() => handlePresetSelect(p.conditions)}
+                  title={p.description}
+                  className={`text-xs px-2.5 py-1 rounded-[4px] font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[var(--chrome-active-bg)] text-[var(--text-primary)] border border-[var(--border-strong)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {p.name}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {PRESETS.map((p) => {
-            const isActive =
-              conditions.o2_percent === p.conditions.o2_percent &&
-              conditions.pressure_kpa === p.conditions.pressure_kpa
-
-            return (
-              <button
-                key={p.name}
-                onClick={() => handlePresetSelect(p.conditions)}
-                title={p.description}
-                className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
-                  isActive
-                    ? 'border-orange-500/60 bg-orange-500/15 text-orange-300 shadow-[0_0_10px_rgba(249,115,22,0.15)]'
-                    : 'border-border bg-secondary/30 text-foreground hover:bg-secondary/70'
-                }`}
-              >
-                {p.name}
-              </button>
-            )
-          })}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleReset}
+            className="inline-flex items-center gap-1 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors px-2 py-1 rounded-[4px] hover:bg-[var(--bg-elevated)]"
+            title="Reset conditions to default"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>Reset</span>
+          </button>
+          <button
+            onClick={() => onExport('csv')}
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-2.5 py-1 rounded-[4px] border border-[var(--border-default)] hover:bg-[var(--bg-elevated)] transition-colors"
+            title="Export ranking as CSV"
+          >
+            <Download className="h-3 w-3" />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 
       {/* Numerical Environmental Sliders & Condition Selectors */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Oxygen Concentration */}
-        <div className="space-y-1.5 bg-secondary/20 p-3 rounded-lg border border-border/50">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-foreground flex items-center gap-1.5">
-              <span>Oxygen (O₂)</span>
-            </span>
-            <span className="font-mono text-xs font-bold text-orange-400">
-              {conditions.o2_percent.toFixed(1)} %
-            </span>
+        <div className="space-y-1.5 p-2 rounded-[6px] bg-[var(--bg-inset)] border border-[var(--border-subtle)]">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[var(--text-tertiary)] font-medium">Oxygen (O₂)</span>
+            <div className="flex items-baseline gap-1">
+              <span className="font-mono text-[18px] font-semibold text-[var(--text-primary)]">
+                {conditions.o2_percent.toFixed(1)}
+              </span>
+              <span className="text-[13px] text-[var(--text-tertiary)]">%</span>
+            </div>
           </div>
-          <input
-            type="range"
-            min="10"
-            max="45"
-            step="1"
-            value={conditions.o2_percent}
-            onChange={(e) =>
-              onChange({ ...conditions, o2_percent: parseFloat(e.target.value) || 21 })
-            }
-            className="w-full accent-orange-500 h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>10% (Low)</span>
-            <span>21% (Earth)</span>
-            <span>45% (High)</span>
+
+          <div className="pt-1">
+            <input
+              type="range"
+              min="10"
+              max="45"
+              step="1"
+              value={conditions.o2_percent}
+              onChange={(e) =>
+                onChange({ ...conditions, o2_percent: parseFloat(e.target.value) || 21 })
+              }
+              style={{
+                background: `linear-gradient(to right, rgba(245, 245, 247, 0.85) 0%, rgba(245, 245, 247, 0.85) ${o2Percent}%, rgba(255, 255, 255, 0.10) ${o2Percent}%, rgba(255, 255, 255, 0.10) 100%)`,
+              }}
+              className="w-full h-1 rounded-[2px] appearance-none cursor-pointer focus:outline-none"
+            />
+            <Graticule min={10} max={45} step={5} className="mt-1" />
+          </div>
+
+          <div className="flex justify-between text-xs font-mono text-[var(--text-tertiary)] pt-0.5">
+            <span>10%</span>
+            <span>21% (Air)</span>
+            <span>45%</span>
           </div>
         </div>
 
         {/* Ambient Pressure */}
-        <div className="space-y-1.5 bg-secondary/20 p-3 rounded-lg border border-border/50">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-foreground flex items-center gap-1.5">
-              <Gauge className="h-3 w-3 text-cyan-400" />
-              <span>Pressure</span>
-            </span>
-            <span className="font-mono text-xs font-bold text-cyan-400">
-              {conditions.pressure_kpa.toFixed(1)} kPa
-            </span>
+        <div className="space-y-1.5 p-2 rounded-[6px] bg-[var(--bg-inset)] border border-[var(--border-subtle)]">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[var(--text-tertiary)] font-medium">Pressure</span>
+            <div className="flex items-baseline gap-1">
+              <span className="font-mono text-[18px] font-semibold text-[var(--text-primary)]">
+                {conditions.pressure_kpa.toFixed(1)}
+              </span>
+              <span className="text-[13px] text-[var(--text-tertiary)]">kPa</span>
+            </div>
           </div>
-          <input
-            type="range"
-            min="30"
-            max="110"
-            step="1"
-            value={conditions.pressure_kpa}
-            onChange={(e) =>
-              onChange({ ...conditions, pressure_kpa: parseFloat(e.target.value) || 101.3 })
-            }
-            className="w-full accent-cyan-500 h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>30 kPa</span>
+
+          <div className="pt-1">
+            <input
+              type="range"
+              min="30"
+              max="110"
+              step="1"
+              value={conditions.pressure_kpa}
+              onChange={(e) =>
+                onChange({ ...conditions, pressure_kpa: parseFloat(e.target.value) || 101.3 })
+              }
+              style={{
+                background: `linear-gradient(to right, rgba(245, 245, 247, 0.85) 0%, rgba(245, 245, 247, 0.85) ${pressurePercent}%, rgba(255, 255, 255, 0.10) ${pressurePercent}%, rgba(255, 255, 255, 0.10) 100%)`,
+              }}
+              className="w-full h-1 rounded-[2px] appearance-none cursor-pointer focus:outline-none"
+            />
+            <Graticule min={30} max={110} step={10} className="mt-1" />
+          </div>
+
+          <div className="flex justify-between text-xs font-mono text-[var(--text-tertiary)] pt-0.5">
+            <span>30</span>
             <span>70 (Lunar)</span>
-            <span>101.3 (1 atm)</span>
+            <span>101.3</span>
           </div>
         </div>
 
         {/* Ventilation Flow Velocity */}
-        <div className="space-y-1.5 bg-secondary/20 p-3 rounded-lg border border-border/50">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-foreground flex items-center gap-1.5">
-              <Wind className="h-3 w-3 text-emerald-400" />
-              <span>Airflow (Ventilation)</span>
-            </span>
-            <span className="font-mono text-xs font-bold text-emerald-400">
-              {conditions.flow_velocity_cm_s.toFixed(1)} cm/s
-            </span>
+        <div className="space-y-1.5 p-2 rounded-[6px] bg-[var(--bg-inset)] border border-[var(--border-subtle)]">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[var(--text-tertiary)] font-medium">Airflow</span>
+            <div className="flex items-baseline gap-1">
+              <span className="font-mono text-[18px] font-semibold text-[var(--text-primary)]">
+                {conditions.flow_velocity_cm_s.toFixed(1)}
+              </span>
+              <span className="text-[13px] text-[var(--text-tertiary)]">cm/s</span>
+            </div>
           </div>
-          <input
-            type="range"
-            min="0"
-            max="25"
-            step="1"
-            value={conditions.flow_velocity_cm_s}
-            onChange={(e) =>
-              onChange({ ...conditions, flow_velocity_cm_s: parseFloat(e.target.value) || 0 })
-            }
-            className="w-full accent-emerald-500 h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>0 (Quiescent)</span>
-            <span>5 (Hab Duct)</span>
-            <span>25 cm/s</span>
+
+          <div className="pt-1">
+            <input
+              type="range"
+              min="0"
+              max="25"
+              step="1"
+              value={conditions.flow_velocity_cm_s}
+              onChange={(e) =>
+                onChange({ ...conditions, flow_velocity_cm_s: parseFloat(e.target.value) || 0 })
+              }
+              style={{
+                background: `linear-gradient(to right, rgba(245, 245, 247, 0.85) 0%, rgba(245, 245, 247, 0.85) ${flowPercent}%, rgba(255, 255, 255, 0.10) ${flowPercent}%, rgba(255, 255, 255, 0.10) 100%)`,
+              }}
+              className="w-full h-1 rounded-[2px] appearance-none cursor-pointer focus:outline-none"
+            />
+            <Graticule min={0} max={25} step={5} className="mt-1" />
+          </div>
+
+          <div className="flex justify-between text-xs font-mono text-[var(--text-tertiary)] pt-0.5">
+            <span>0</span>
+            <span>5 (Duct)</span>
+            <span>25</span>
           </div>
         </div>
 
         {/* Gravity Level */}
-        <div className="space-y-1.5 bg-secondary/20 p-3 rounded-lg border border-border/50">
-          <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-            <Compass className="h-3 w-3 text-purple-400" />
-            <span>Gravity Level</span>
-          </label>
+        <div className="space-y-1.5 p-2 rounded-[6px] bg-[var(--bg-inset)] border border-[var(--border-subtle)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[var(--text-tertiary)] font-medium">Gravity Level</span>
+            <span className="text-xs font-mono text-[var(--text-secondary)]">Domain</span>
+          </div>
+
           <select
             value={conditions.gravity_level}
             onChange={(e) => onChange({ ...conditions, gravity_level: e.target.value })}
-            className="w-full text-xs bg-background/80 border border-border rounded-lg px-2.5 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-purple-400"
+            className="w-full text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[4px] px-2 py-1.5 text-[var(--text-primary)] focus:outline-none"
           >
-            <option value="microgravity">Microgravity (μg, ISS/Cygnus)</option>
-            <option value="partial_g">Partial-g (Lunar 1/6 g / Mars 3/8 g)</option>
-            <option value="normal_g">Normal-g (1.0 g Earth)</option>
-            <option value="any">Any Gravity (Cross-domain)</option>
+            <option value="microgravity">Microgravity (μg)</option>
+            <option value="partial_g">Partial-g (Lunar/Mars)</option>
+            <option value="normal_g">Normal-g (1.0g)</option>
+            <option value="any">Any Gravity</option>
           </select>
-          <div className="text-[10px] text-muted-foreground">
-            Filters proximity weighting
-          </div>
+
+          <span className="text-[12px] text-[var(--text-tertiary)]">Proximity multiplier 0.5x</span>
         </div>
 
-        {/* Material Class Filter & Action Controls */}
-        <div className="space-y-1.5 bg-secondary/20 p-3 rounded-lg border border-border/50">
-          <label className="text-xs font-medium text-foreground flex items-center justify-between">
-            <span>Material Class</span>
-            <button
-              onClick={handleReset}
-              className="text-[10px] text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition"
-              title="Reset conditions to default"
-            >
-              <RotateCcw className="h-2.5 w-2.5" />
-              <span>Reset</span>
-            </button>
-          </label>
-          <div className="flex items-center gap-2">
-            <select
-              value={conditions.material_class}
-              onChange={(e) => onChange({ ...conditions, material_class: e.target.value })}
-              className="w-full text-xs bg-background/80 border border-border rounded-lg px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-orange-400"
-            >
-              <option value="all">All Classes</option>
-              <option value="polymer">Polymers (Acrylic, POM, Kapton)</option>
-              <option value="fabric">Fabrics (SIBAL, Nomex)</option>
-              <option value="cellulose">Cellulose (Kimwipes, Paper)</option>
-              <option value="other">Other (Silicone RTV)</option>
-            </select>
+        {/* Material Class Filter */}
+        <div className="space-y-1.5 p-2 rounded-[6px] bg-[var(--bg-inset)] border border-[var(--border-subtle)] flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[var(--text-tertiary)] font-medium">Material Class</span>
+            <span className="text-xs font-mono text-[var(--text-secondary)]">Filter</span>
+          </div>
 
-            <button
-              onClick={() => onExport('csv')}
-              className="p-1.5 rounded-lg border border-border bg-background/80 hover:bg-secondary text-foreground transition"
-              title="Export current ranking as CSV (US-10)"
-            >
-              <Download className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-          <div className="text-[10px] text-muted-foreground flex justify-between">
-            <span>Dynamic filter</span>
-            <span className="font-mono text-orange-400/80">300ms debounce</span>
-          </div>
+          <select
+            value={conditions.material_class}
+            onChange={(e) => onChange({ ...conditions, material_class: e.target.value })}
+            className="w-full text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[4px] px-2 py-1.5 text-[var(--text-primary)] focus:outline-none"
+          >
+            <option value="all">All Classes</option>
+            <option value="polymer">Polymers (Acrylic, POM, Kapton)</option>
+            <option value="fabric">Fabrics (SIBAL, Nomex)</option>
+            <option value="cellulose">Cellulose (Kimwipes)</option>
+            <option value="other">Other (Silicone RTV)</option>
+          </select>
+
+          <span className="text-[12px] text-[var(--text-tertiary)]">300ms pure-Python debounce</span>
         </div>
       </div>
     </div>
