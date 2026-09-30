@@ -1,5 +1,6 @@
 import React from 'react'
-import { Flame, Shield, HelpCircle, BookOpen, MessageSquare, Database } from 'lucide-react'
+import { HelpCircle, BookOpen, MessageSquare, Database } from 'lucide-react'
+import { Reticle, StatusDot } from './ui'
 
 interface HeaderProps {
   isBackendConnected: boolean
@@ -21,83 +22,64 @@ export const Header: React.FC<HeaderProps> = ({
   askAIOpen,
 }) => {
   return (
-    <header className="border-b border-border/80 bg-card/60 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3.5 transition-all">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-        {/* Logo and Brand */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500/20 via-red-500/20 to-amber-500/20 border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.15)]">
-            <Shield className="h-6 w-6 text-orange-400 absolute" />
-            <Flame className="h-4 w-4 text-amber-300 relative z-10 animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-orange-400 via-rose-400 to-amber-300 bg-clip-text text-transparent">
-                AegnyxZero
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                NASA Space Apps
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <span>Evidence-First Microgravity Fire Safety</span>
-              <span className="text-muted-foreground/40">&middot;</span>
-              <span className="font-mono text-[11px] text-muted-foreground/80">33 Verified Experiments</span>
-            </p>
-          </div>
+    <header className="h-12 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)] sticky top-0 z-40 px-6 flex items-center justify-between select-none">
+      <div className="max-w-[1600px] w-full mx-auto flex items-center justify-between gap-4">
+        {/* Left: Reticle mark, Wordmark, and Version Badge */}
+        <div className="flex items-center gap-2.5">
+          <Reticle size={16} />
+          <span className="font-sans text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">
+            AegnyxZero
+          </span>
+          <span className="font-mono text-xs text-[var(--text-tertiary)] border border-[var(--border-subtle)] px-1.5 py-0.2 rounded-[4px]">
+            {datasetVersion || 'v1.0'}
+          </span>
         </div>
 
-        {/* Status indicators & Actions */}
-        <div className="flex items-center flex-wrap gap-2.5">
-          {/* Connection status badge */}
-          <div
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-mono transition-colors ${
-              isBackendConnected
-                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-            }`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isBackendConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-              }`}
-            />
-            <span>{isBackendConnected ? `Live API (${datasetVersion})` : 'Offline Snapshot (v1.1)'}</span>
+        {/* Center / Right: Flat Status Pill and Navigation Actions */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Status pill: flat, no blur, neutral dot */}
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/[0.04] border border-[var(--border-subtle)] px-2.5 py-0.5 text-xs font-mono text-[var(--text-secondary)]">
+            <StatusDot live={isBackendConnected} />
+            <span>{isBackendConnected ? `LIVE · ${datasetVersion}` : `OFFLINE · ${datasetVersion}`}</span>
           </div>
 
-          {/* Quick Action Navigation */}
+          <div className="h-4 w-[1px] bg-[var(--border-subtle)] hidden sm:block" />
+
+          {/* Quick Action Buttons: 13px text-secondary, hover text-primary */}
           <button
             onClick={onOpenFormula}
-            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 text-foreground hover:bg-secondary hover:border-border/80 transition"
+            className="inline-flex items-center gap-1.5 text-[13px] px-2.5 py-1 rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
             title="Inspect scoring formula and weight assumptions"
           >
-            <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Score Formula</span>
+            <HelpCircle className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">Score Formula</span>
           </button>
 
           <button
             onClick={onOpenReviewLog}
-            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 text-foreground hover:bg-secondary hover:border-border/80 transition"
+            className="inline-flex items-center gap-1.5 text-[13px] px-2.5 py-1 rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
             title="View expert approval and flag history"
           >
-            <Database className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Review Log</span>
+            <Database className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">Review Log</span>
           </button>
 
           <button
             onClick={onOpenAbout}
-            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-border bg-secondary/40 text-foreground hover:bg-secondary hover:border-border/80 transition"
+            className="inline-flex items-center gap-1.5 text-[13px] px-2.5 py-1 rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
             title="NASA data sources, team info, and data limitations"
           >
-            <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Data & Limits</span>
+            <BookOpen className="h-3.5 w-3.5" />
+            <span className="hidden md:inline">Data & Limits</span>
           </button>
 
+          {/* Ask Safety AI trigger: neutral active state */}
           <button
             onClick={onToggleAskAI}
-            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow-sm ${
+            className={`inline-flex items-center gap-1.5 text-[13px] px-3 py-1 rounded-[6px] font-medium transition-colors border ${
               askAIOpen
-                ? 'bg-orange-500 text-white shadow-orange-500/20'
-                : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:opacity-95'
+                ? 'bg-[var(--chrome-active-bg)] text-[var(--text-primary)] border-[var(--border-strong)]'
+                : 'border-[var(--border-default)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:bg-white/[0.08]'
             }`}
           >
             <MessageSquare className="h-3.5 w-3.5" />
