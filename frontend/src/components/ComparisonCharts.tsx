@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { LineChart, Info } from 'lucide-react'
+import { Info } from 'lucide-react'
+import { SectionHeader } from './ui'
 import type { Experiment } from '../types'
 
 interface ComparisonChartsProps {
@@ -7,15 +8,15 @@ interface ComparisonChartsProps {
   selectedMaterials: string[]
 }
 
-const MATERIAL_COLORS: Record<string, string> = {
-  'PMMA (cast acrylic)': '#f97316',      // orange
-  'SIBAL fabric': '#ef4444',              // red
-  'Nomex HT90-40': '#06b6d4',             // cyan
-  'Cellulose Kimwipes': '#eab308',         // yellow
-  'Delrin (POM)': '#a855f7',              // purple
-  'Polycarbonate (Lexan)': '#3b82f6',     // blue
-  'Silicone Elastomer (RTV)': '#10b981',  // emerald
-  'Kapton (Polyimide)': '#64748b',        // slate
+const MATERIAL_COLORS: Record<string, { color: string; glyph: 'circle' | 'diamond' | 'triangle' | 'square' }> = {
+  'PMMA (cast acrylic)': { color: 'var(--risk-severe)', glyph: 'square' },
+  'SIBAL fabric': { color: 'var(--risk-severe)', glyph: 'square' },
+  'Delrin (POM)': { color: 'var(--risk-severe)', glyph: 'square' },
+  'Nomex HT90-40': { color: 'var(--risk-high)', glyph: 'triangle' },
+  'Cellulose Kimwipes': { color: 'var(--risk-mod)', glyph: 'diamond' },
+  'Polycarbonate (Lexan)': { color: 'var(--risk-mod)', glyph: 'diamond' },
+  'Kapton (Polyimide)': { color: 'var(--risk-low)', glyph: 'circle' },
+  'Silicone Elastomer (RTV)': { color: 'var(--risk-low)', glyph: 'circle' },
 }
 
 export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
@@ -38,9 +39,9 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
   )
 
   // Chart dimensions
-  const width = 540
+  const width = 800
   const height = 240
-  const padding = { top: 20, right: 30, bottom: 40, left: 45 }
+  const padding = { top: 24, right: 32, bottom: 44, left: 52 }
   const plotW = width - padding.left - padding.right
   const plotH = height - padding.top - padding.bottom
 
@@ -48,7 +49,7 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
   const maxSpread = Math.max(8.0, ...validExps.map((e) => e.spread_rate_mm_s || 0))
 
   // For O2 tab: x in [15, 40]
-  // For Flow tab: x in [0, 22]
+  // For Flow tab: x in [0, 25]
   const xMin = activeTab === 'o2' ? 15 : 0
   const xMax = activeTab === 'o2' ? 40 : 25
 
@@ -56,83 +57,81 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
   const getY = (val: number) => padding.top + plotH - (val / maxSpread) * plotH
 
   return (
-    <div className="bg-card/70 border border-border rounded-xl backdrop-blur-sm shadow-sm overflow-hidden flex flex-col p-4 lg:p-5">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[8px] p-3.5 space-y-3">
       {/* Chart Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/80">
-        <div>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
-            <LineChart className="h-4 w-4 text-orange-400" />
-            <span>Empirical Combustion Trends</span>
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Compare flame spread velocity across NASA microgravity investigations.
-          </p>
-        </div>
+      <SectionHeader
+        title="Empirical Microgravity Combustion Trends"
+        action={
+          <div className="inline-flex rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-inset)] p-0.5 text-xs font-medium select-none">
+            <button
+              onClick={() => setActiveTab('o2')}
+              className={`px-2.5 py-1 rounded-[4px] transition-colors ${
+                activeTab === 'o2'
+                  ? 'bg-[var(--chrome-active-bg)] text-[var(--text-primary)] border border-[var(--border-strong)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              Spread vs O₂ (%)
+            </button>
+            <button
+              onClick={() => setActiveTab('flow')}
+              className={`px-2.5 py-1 rounded-[4px] transition-colors ${
+                activeTab === 'flow'
+                  ? 'bg-[var(--chrome-active-bg)] text-[var(--text-primary)] border border-[var(--border-strong)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              Spread vs Airflow (cm/s)
+            </button>
+          </div>
+        }
+      />
 
-        {/* Tab switch */}
-        <div className="inline-flex rounded-lg border border-border bg-secondary/40 p-0.5 text-xs">
-          <button
-            onClick={() => setActiveTab('o2')}
-            className={`px-3 py-1 rounded-md font-medium transition ${
-              activeTab === 'o2'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Spread vs O₂ (%)
-          </button>
-          <button
-            onClick={() => setActiveTab('flow')}
-            className={`px-3 py-1 rounded-md font-medium transition ${
-              activeTab === 'flow'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Spread vs Airflow (cm/s)
-          </button>
-        </div>
-      </div>
-
-      {/* Selected Materials Legend */}
-      <div className="flex flex-wrap items-center gap-3 pt-3 text-xs">
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase">
-          Active Materials:
+      {/* Active Materials Legend */}
+      <div className="flex flex-wrap items-center gap-2 pt-0.5 text-xs select-none">
+        <span className="text-[11px] uppercase tracking-[0.08em] font-medium text-[var(--text-tertiary)]">
+          Active Series:
         </span>
         {selectedMaterials.length === 0 ? (
-          <span className="text-xs text-muted-foreground italic">
-            Check materials in the table to plot them
+          <span className="text-xs text-[var(--text-tertiary)] italic">
+            Select materials from the table to plot them
           </span>
         ) : (
-          selectedMaterials.map((mat) => (
-            <div key={mat} className="flex items-center gap-1.5 font-medium">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: MATERIAL_COLORS[mat] || '#f97316' }}
-              />
-              <span className="text-foreground text-[11px]">{mat}</span>
-            </div>
-          ))
+          selectedMaterials.map((mat) => {
+            const config = MATERIAL_COLORS[mat] || { color: 'var(--text-primary)', glyph: 'circle' }
+            return (
+              <div
+                key={mat}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[var(--bg-inset)] border border-[var(--border-subtle)] text-xs text-[var(--text-primary)]"
+              >
+                <span
+                  className="w-2 h-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: config.color }}
+                />
+                <span className="text-[12px]">{mat}</span>
+              </div>
+            )
+          })
         )}
       </div>
 
-      {/* SVG Chart Canvas */}
-      <div className="relative mt-3 w-full overflow-x-auto flex justify-center">
+      {/* SVG Canvas Area */}
+      <div className="relative mt-2 w-full overflow-x-auto flex justify-center">
         {validExps.length === 0 ? (
-          <div className="h-60 w-full flex flex-col items-center justify-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">
-            <Info className="h-5 w-5 mb-1.5 text-muted-foreground/60" />
+          <div className="h-56 w-full flex flex-col items-center justify-center text-xs text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded-[6px] bg-[var(--bg-inset)]">
+            <Info className="h-4 w-4 mb-1 text-[var(--text-disabled)]" />
             <span>No plottable experiments for currently selected materials.</span>
-            <span className="text-[11px] text-muted-foreground/80 mt-0.5">
-              Select PMMA, SIBAL fabric, or Cellulose from the table above.
+            <span className="text-[11px] text-[var(--text-disabled)] mt-0.5">
+              Ensure materials like PMMA, SIBAL, or Nomex are selected.
             </span>
           </div>
         ) : (
-          <div className="relative">
+          <div className="relative w-full">
             <svg
               viewBox={`0 0 ${width} ${height}`}
-              className="w-full max-w-[540px] select-none"
+              className="w-full h-auto select-none overflow-visible"
             >
-              {/* Grid Lines */}
+              {/* Horizontal Grid lines only */}
               {[0, 2, 4, 6, 8].map((val) => {
                 const y = getY(val)
                 return (
@@ -142,15 +141,14 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
                       y1={y}
                       x2={width - padding.right}
                       y2={y}
-                      stroke="currentColor"
-                      strokeOpacity="0.1"
-                      strokeDasharray="3 3"
+                      stroke="var(--border-subtle)"
+                      strokeWidth="1"
                     />
                     <text
                       x={padding.left - 8}
-                      y={y + 3}
+                      y={y + 3.5}
                       textAnchor="end"
-                      className="fill-muted-foreground text-[9px] font-mono"
+                      className="fill-[var(--text-tertiary)] text-[11px] font-mono"
                     >
                       {val}
                     </text>
@@ -158,7 +156,7 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
                 )
               })}
 
-              {/* X Axis Ticks */}
+              {/* X Axis ticks */}
               {activeTab === 'o2'
                 ? [15, 20, 25, 30, 35, 40].map((val) => {
                     const x = getX(val)
@@ -166,17 +164,17 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
                       <g key={val}>
                         <line
                           x1={x}
-                          y1={padding.top}
+                          y1={padding.top + plotH}
                           x2={x}
-                          y2={padding.top + plotH}
-                          stroke="currentColor"
-                          strokeOpacity="0.08"
+                          y2={padding.top + plotH + 5}
+                          stroke="var(--border-default)"
+                          strokeWidth="1"
                         />
                         <text
                           x={x}
-                          y={padding.top + plotH + 16}
+                          y={padding.top + plotH + 18}
                           textAnchor="middle"
-                          className="fill-muted-foreground text-[9px] font-mono"
+                          className="fill-[var(--text-tertiary)] text-[11px] font-mono"
                         >
                           {val}%
                         </text>
@@ -189,17 +187,17 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
                       <g key={val}>
                         <line
                           x1={x}
-                          y1={padding.top}
+                          y1={padding.top + plotH}
                           x2={x}
-                          y2={padding.top + plotH}
-                          stroke="currentColor"
-                          strokeOpacity="0.08"
+                          y2={padding.top + plotH + 5}
+                          stroke="var(--border-default)"
+                          strokeWidth="1"
                         />
                         <text
                           x={x}
-                          y={padding.top + plotH + 16}
+                          y={padding.top + plotH + 18}
                           textAnchor="middle"
-                          className="fill-muted-foreground text-[9px] font-mono"
+                          className="fill-[var(--text-tertiary)] text-[11px] font-mono"
                         >
                           {val}
                         </text>
@@ -207,16 +205,34 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
                     )
                   })}
 
-              {/* Axis Labels */}
+              {/* Baseline Axis lines */}
+              <line
+                x1={padding.left}
+                y1={padding.top + plotH}
+                x2={width - padding.right}
+                y2={padding.top + plotH}
+                stroke="var(--border-default)"
+                strokeWidth="1"
+              />
+              <line
+                x1={padding.left}
+                y1={padding.top}
+                x2={padding.left}
+                y2={padding.top + plotH}
+                stroke="var(--border-default)"
+                strokeWidth="1"
+              />
+
+              {/* Axis Titles */}
               <text
                 x={padding.left + plotW / 2}
-                y={height - 6}
+                y={height - 8}
                 textAnchor="middle"
-                className="fill-muted-foreground text-[10px] font-medium"
+                className="fill-[var(--text-tertiary)] text-[11px] font-sans"
               >
                 {activeTab === 'o2'
                   ? 'Oxygen Concentration (%)'
-                  : 'Forced Ventilation Flow Velocity (cm/s)'}
+                  : 'Ventilation Flow Velocity (cm/s)'}
               </text>
 
               <text
@@ -224,7 +240,7 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
                 y={14}
                 transform="rotate(-90)"
                 textAnchor="middle"
-                className="fill-muted-foreground text-[10px] font-medium"
+                className="fill-[var(--text-tertiary)] text-[11px] font-sans"
               >
                 Spread Rate (mm/s)
               </text>
@@ -238,50 +254,62 @@ export const ComparisonCharts: React.FC<ComparisonChartsProps> = ({
                 const yVal = exp.spread_rate_mm_s ?? 0
                 const cx = getX(xVal)
                 const cy = getY(yVal)
-                const color = MATERIAL_COLORS[exp.material_name] || '#f97316'
+                const config = MATERIAL_COLORS[exp.material_name] || {
+                  color: 'var(--text-primary)',
+                  glyph: 'circle',
+                }
+                const isHovered = hoveredPoint?.exp.id === exp.id
 
                 return (
                   <g
                     key={exp.id}
                     onMouseEnter={() => setHoveredPoint({ exp, x: cx, y: cy })}
                     onMouseLeave={() => setHoveredPoint(null)}
-                    className="cursor-pointer group"
+                    className="cursor-pointer"
                   >
+                    {/* Hover glow ring: 3px without transform */}
+                    {isHovered && (
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={9}
+                        fill="none"
+                        stroke={config.color}
+                        strokeWidth="2"
+                        strokeOpacity="0.4"
+                      />
+                    )}
+                    {/* Data circle: 6px */}
                     <circle
                       cx={cx}
                       cy={cy}
-                      r={6}
-                      fill={color}
-                      fillOpacity={0.85}
-                      stroke="#fff"
-                      strokeWidth={1.5}
-                      className="transition-transform group-hover:scale-125"
+                      r={4.5}
+                      fill={config.color}
+                      stroke="var(--bg-canvas)"
+                      strokeWidth="1.5"
                     />
                   </g>
                 )
               })}
             </svg>
 
-            {/* Hover Tooltip (US-3 AC2) */}
+            {/* Hover Tooltip: --bg-elevated, 1px --border-default, 6px radius, --shadow-md, 12px mono */}
             {hoveredPoint && (
               <div
-                className="absolute z-30 pointer-events-none bg-popover/95 border border-border shadow-xl rounded-lg p-2.5 text-xs text-foreground backdrop-blur-md -translate-x-1/2 -translate-y-full mb-3"
+                className="absolute z-30 pointer-events-none bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-[var(--shadow-md)] rounded-[6px] p-2.5 text-xs font-mono text-[var(--text-primary)] -translate-x-1/2 -translate-y-full mb-3"
                 style={{
-                  left: `${hoveredPoint.x}px`,
+                  left: `${(hoveredPoint.x / width) * 100}%`,
                   top: `${hoveredPoint.y}px`,
                 }}
               >
-                <div className="font-bold text-orange-400">
+                <div className="font-sans font-semibold text-[var(--text-primary)]">
                   {hoveredPoint.exp.material_name}
                 </div>
-                <div className="font-mono text-[11px] text-foreground mt-0.5">
-                  Spread Rate: <strong>{hoveredPoint.exp.spread_rate_mm_s} mm/s</strong>
+                <div className="text-[var(--text-secondary)] mt-0.5">
+                  Spread: <span className="text-[var(--text-primary)] font-bold">{hoveredPoint.exp.spread_rate_mm_s} mm/s</span>
                 </div>
-                <div className="text-[10px] text-muted-foreground">
-                  O₂: {hoveredPoint.exp.o2_percent}% &middot; Pressure: {hoveredPoint.exp.pressure_kpa} kPa &middot; Flow: {hoveredPoint.exp.flow_velocity_cm_s} cm/s
-                </div>
-                <div className="text-[10px] text-cyan-400 mt-1 pt-1 border-t border-border/40 font-mono">
-                  {hoveredPoint.exp.source_id} &middot; {hoveredPoint.exp.source_page}
+                <div className="text-[11px] text-[var(--text-tertiary)] pt-1 mt-1 border-t border-[var(--border-subtle)]">
+                  {hoveredPoint.exp.source_id} · {hoveredPoint.exp.source_page}
                 </div>
               </div>
             )}
