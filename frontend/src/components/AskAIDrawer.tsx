@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { ConfidenceMeter, ValidationPill, Reticle } from './ui'
 import type { AskResponse, UserConditions } from '../types'
+import { API_BASE_URL } from '../config'
 
 interface AskAIDrawerProps {
   isOpen: boolean
@@ -42,7 +43,7 @@ export const AskAIDrawer: React.FC<AskAIDrawerProps> = ({
     setFeedbackGiven(null)
 
     try {
-      const res = await fetch('http://localhost:8000/ask', {
+      const res = await fetch(`${API_BASE_URL}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

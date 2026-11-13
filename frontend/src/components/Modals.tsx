@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, HelpCircle, Database, BookOpen, AlertTriangle, ShieldCheck } from 'lucide-react'
+import { X, HelpCircle, Database, BookOpen, AlertTriangle, ShieldCheck, Globe } from 'lucide-react'
 import type { FeedbackItem } from '../types'
 
 interface ScoreFormulaModalProps {
@@ -175,9 +175,10 @@ export const ReviewLogModal: React.FC<ReviewLogModalProps> = ({ isOpen, onClose,
 interface AboutModalProps {
   isOpen: boolean
   onClose: () => void
+  onOpenTeam?: () => void
 }
 
-export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
+export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose, onOpenTeam }) => {
   if (!isOpen) return null
 
   return (
@@ -236,6 +237,151 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
               It is NOT a certified spacecraft life-safety clearance system. Spacecraft materials must always undergo
               formal NASA STD-6001 testing before flight qualification.
             </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
+          {onOpenTeam ? (
+            <button
+              onClick={() => {
+                onClose()
+                onOpenTeam()
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--ember)] hover:underline cursor-pointer"
+            >
+              Meet Team Turtlers &rarr;
+            </button>
+          ) : <div />}
+          <button
+            onClick={onClose}
+            className="px-3.5 py-1.5 rounded-[6px] bg-[var(--bg-elevated)] border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-white/[0.08] text-xs font-medium transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface ContextImpactModalProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+export const ContextImpactModal: React.FC<ContextImpactModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-[4px] animate-in fade-in duration-150">
+      <div className="w-full max-w-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-[var(--shadow-lg)] p-6 space-y-4 overflow-y-auto max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-start justify-between pb-3 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center gap-2.5">
+            <Globe className="w-5 h-5 text-[var(--ember)]" />
+            <div>
+              <h3 className="text-[16px] font-semibold text-[var(--text-primary)]">
+                Why Space Fire Safety Matters
+              </h3>
+              <p className="text-xs text-[var(--text-tertiary)] font-mono">
+                Context &amp; Earth Impact &middot; Historical Precedent &amp; Terrestrial Spin-offs
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors focus-visible:outline-none"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content sections */}
+        <div className="space-y-4 text-xs text-[var(--text-secondary)] font-sans">
+          {/* Section 1: Historical Warnings */}
+          <div className="bg-[var(--bg-inset)] p-3.5 rounded-[6px] border border-[var(--border-subtle)] space-y-2">
+            <h4 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ember)] flex items-center gap-1.5 font-mono">
+              <span>Historical Warnings</span>
+            </h4>
+            <p className="leading-relaxed">
+              Catastrophic fires and near-misses have shaped human spaceflight history. In Apollo 1 (
+              <span className="font-mono font-medium text-[var(--text-primary)]">1967</span>), a pure-oxygen flash
+              fire claimed the lives of three astronauts during a pre-flight pad test. During Apollo 13 (
+              <span className="font-mono font-medium text-[var(--text-primary)]">1970</span>), an electrical short inside
+              an oxygen tank sparked a critical explosion that crippled the service module en route to the Moon. In{' '}
+              <span className="font-mono font-medium text-[var(--text-primary)]">1997</span>, a solid-fuel oxygen generator
+              canister ignited aboard the Mir space station, filling the orbital outpost with thick toxic smoke and blocking access to
+              one of the two Soyuz escape vehicles.
+            </p>
+            <div className="border-l-2 border-[var(--ember)] pl-2.5 py-1 text-[var(--text-primary)] font-medium text-[12px]">
+              &ldquo;These events prove that fire in microgravity is an existential threat.&rdquo;
+            </div>
+            <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+              In space, buoyant natural convection disappears. Flames burn as spherical, slow-moving smolders that produce
+              concentrated carbon monoxide, making detection difficult and evacuation impossible without fully reliable suppression.
+            </p>
+          </div>
+
+          {/* Section 2: The Lunar Challenge */}
+          <div className="bg-[var(--bg-inset)] p-3.5 rounded-[6px] border border-[var(--border-subtle)] space-y-2">
+            <h4 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ember)] flex items-center gap-1.5 font-mono">
+              <span>The Lunar Challenge</span>
+            </h4>
+            <p className="leading-relaxed">
+              As NASA prepares permanent habitats for the Artemis Moon Base and Mars transit, life-support engineers must adopt
+              Exploration Atmospheres. To allow astronauts to perform frequent extravehicular activities (spacewalks) without spending
+              hours pre-breathing to avoid decompression sickness, cabin baseline environments will operate under reduced pressure.
+            </p>
+            <div className="p-2.5 rounded-[4px] bg-[var(--bg-surface)] border border-[var(--border-subtle)] font-mono text-[11px] text-[var(--text-primary)]">
+              Cabin Baseline Specification: <span className="text-[var(--ember)] font-semibold">30%+</span> oxygen at{' '}
+              <span className="text-[var(--ember)] font-semibold">10.2</span> psi (<span className="text-[var(--text-secondary)]">70.3 kPa</span>)
+            </div>
+            <p className="leading-relaxed">
+              Higher oxygen makes materials drastically more flammable than on Earth. Materials certified as self-extinguishing or
+              flame-retardant under standard sea-level terrestrial conditions (
+              <span className="font-mono text-[var(--text-primary)]">21%</span> O₂ at{' '}
+              <span className="font-mono text-[var(--text-primary)]">14.7</span> psi) will burn vigorously in a{' '}
+              <span className="font-mono text-[var(--text-primary)]">30%+</span> O₂ exploration cabin. AegnyxZero specifically maps
+              and evaluates flammability limits in this high-risk regime.
+            </p>
+          </div>
+
+          {/* Section 3: Terrestrial Applications */}
+          <div className="bg-[var(--bg-inset)] p-3.5 rounded-[6px] border border-[var(--border-subtle)] space-y-2">
+            <h4 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[var(--ember)] flex items-center gap-1.5 font-mono">
+              <span>Terrestrial Applications</span>
+            </h4>
+            <p className="leading-relaxed">
+              NASA combustion research directly translates to Earth safety, driving life-saving technology spin-offs across commercial
+              and municipal sectors:
+            </p>
+            <ul className="space-y-1.5 text-[var(--text-secondary)]">
+              <li className="flex items-start gap-1.5">
+                <span className="text-[var(--ember)] font-mono font-bold">&bull;</span>
+                <span>
+                  <strong className="text-[var(--text-primary)]">Fine-Water-Mist Extinguishers:</strong> Space-qualified micro-droplet mist
+                  systems extinguish fires by rapidly starving them of thermal energy and oxygen without toxic chemical residues, now
+                  safeguarding terrestrial data centers, historic archives, passenger aircraft, and marine vessels.
+                </span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-[var(--ember)] font-mono font-bold">&bull;</span>
+                <span>
+                  <strong className="text-[var(--text-primary)]">Advanced Smoke Detectors (DAFT):</strong> Discriminating Acid / Aerosol / Flame
+                  Technologies developed for spacecraft life support distinguish real combustion smoke particles from non-hazardous dust,
+                  dramatically reducing false alarms in subways, mining tunnels, and industrial cleanrooms.
+                </span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <span className="text-[var(--ember)] font-mono font-bold">&bull;</span>
+                <span>
+                  <strong className="text-[var(--text-primary)]">Fire-Resistant Gear for Firefighters:</strong> Thermal barrier polymers,
+                  high-temperature flame-resistant fabrics (polybenzimidazole PBI and Nomex blends), and lightweight breathing apparatuses
+                  engineered for astronauts now serve as standard protective armor for frontline municipal and wildland firefighters worldwide.
+                </span>
+              </li>
+            </ul>
           </div>
         </div>
 

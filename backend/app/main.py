@@ -48,10 +48,12 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Allow frontend dev server to call the API
+# Configure CORS origins from environment variable (supporting local dev and cloud production)
+origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

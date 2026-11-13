@@ -6,8 +6,10 @@ import { EvidenceDrawer } from './components/EvidenceDrawer'
 import { ComparisonCharts } from './components/ComparisonCharts'
 import { CoverageMap } from './components/CoverageMap'
 import { AskAIDrawer } from './components/AskAIDrawer'
-import { ScoreFormulaModal, ReviewLogModal, AboutModal } from './components/Modals'
+import { Team } from './components/Team'
+import { ScoreFormulaModal, ReviewLogModal, AboutModal, ContextImpactModal } from './components/Modals'
 import { BandBadge, ConfidenceMeter } from './components/ui'
+import { API_BASE_URL } from './config'
 import type {
   MaterialRanking,
   Experiment,
@@ -56,14 +58,43 @@ function App() {
   const [isFormulaOpen, setIsFormulaOpen] = useState(false)
   const [isReviewOpen, setIsReviewOpen] = useState(false)
   const [isAboutOpen, setIsAboutOpen] = useState(false)
+  const [isImpactOpen, setIsImpactOpen] = useState(false)
   const [isAskAIOpen, setIsAskAIOpen] = useState(false)
   const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([])
+
+  // View state: 'dashboard' | 'team'
+  const [currentView, setCurrentView] = useState<'dashboard' | 'team'>(() => {
+    return typeof window !== 'undefined' && window.location.hash === '#team' ? 'team' : 'dashboard'
+  })
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#team') {
+        setCurrentView('team')
+      } else {
+        setCurrentView('dashboard')
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  const handleNavigate = (view: 'dashboard' | 'team') => {
+    setCurrentView(view)
+    if (view === 'team') {
+      window.location.hash = '#team'
+    } else {
+      if (window.location.hash === '#team') {
+        window.history.pushState(null, '', window.location.pathname + window.location.search)
+      }
+    }
+  }
 
   const debounceTimer = useRef<number | null>(null)
 
   // 1. Initial Health and Dataset Check
   useEffect(() => {
-    fetch('http://localhost:8000/health')
+    fetch(`${API_BASE_URL}/health`)
       .then((res) => res.json())
       .then((data) => {
         setIsBackendConnected(true)
@@ -75,21 +106,21 @@ function App() {
       })
 
     // Fetch initial experiments and sources from live backend if available
-    fetch('http://localhost:8000/experiments')
+    fetch(`${API_BASE_URL}/experiments`)
       .then((res) => res.json())
       .then((data: Experiment[]) => {
         if (data && data.length > 0) setExperiments(data)
       })
       .catch(() => {})
 
-    fetch('http://localhost:8000/sources')
+    fetch(`${API_BASE_URL}/sources`)
       .then((res) => res.json())
       .then((data: Source[]) => {
         if (data && data.length > 0) setSources(data)
       })
       .catch(() => {})
 
-    fetch('http://localhost:8000/feedback')
+    fetch(`${API_BASE_URL}/feedback`)
       .then((res) => res.json())
       .then((data: FeedbackItem[]) => {
         if (data) setFeedbacks(data)
@@ -104,12 +135,12 @@ function App() {
     debounceTimer.current = window.setTimeout(async () => {
       try {
         const [rankingRes, coverageRes] = await Promise.all([
-          fetch('http://localhost:8000/risk-ranking', {
+          fetch(`${API_BASE_URL}/risk-ranking`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(conditions),
           }),
-          fetch('http://localhost:8000/coverage', {
+          fetch(`${API_BASE_URL}/coverage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(conditions),
@@ -143,7 +174,7 @@ function App() {
 
   // 4. Export Ranking (US-10)
   const handleExport = (format: 'csv' | 'json') => {
-    const url = `http://localhost:8000/export?format=${format}&o2_percent=${conditions.o2_percent}&pressure_kpa=${conditions.pressure_kpa}&flow_velocity_cm_s=${conditions.flow_velocity_cm_s}&gravity_level=${conditions.gravity_level}`
+    const url = `${API_BASE_URL}/export?format=${format}&o2_percent=${conditions.o2_percent}&pressure_kpa=${conditions.pressure_kpa}&flow_velocity_cm_s=${conditions.flow_velocity_cm_s}&gravity_level=${conditions.gravity_level}`
     window.open(url, '_blank')
   }
 
@@ -155,7 +186,7 @@ function App() {
     note?: string
   ) => {
     try {
-      const res = await fetch('http://localhost:8000/feedback', {
+      const res = await fetch(`${API_BASE_URL}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -203,80 +234,88 @@ function App() {
         isBackendConnected={isBackendConnected}
         datasetVersion={datasetVersion}
         onOpenFormula={() => setIsFormulaOpen(true)}
+        onOpenImpact={() => setIsImpactOpen(true)}
         onOpenAbout={() => setIsAboutOpen(true)}
         onOpenReviewLog={() => setIsReviewOpen(true)}
         onToggleAskAI={() => setIsAskAIOpen(!isAskAIOpen)}
         askAIOpen={isAskAIOpen}
+        currentView={currentView}
+        onOpenTeam={() => handleNavigate('team')}
+        onNavigateDashboard={() => handleNavigate('dashboard')}
       />
 
-      {/* ─── Main Content Canvas: max-w-[1600px] ─── */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-6 py-4 space-y-3">
-        {/* Conditions Control Panel & Presets */}
-        <ConditionsBar
-          conditions={conditions}
-          onChange={setConditions}
-          onExport={handleExport}
-        />
+      {currentView === 'dashboard' ? (
+        /* ─── Main Content Canvas: max-w-[1600px] ─── */
+        <main className="flex-1 max-w-[1600px] w-full mx-auto px-6 py-4 space-y-3">
+          {/* Conditions Control Panel & Presets */}
+          <ConditionsBar
+            conditions={conditions}
+            onChange={setConditions}
+            onExport={handleExport}
+          />
 
-        {/* Verdict Strip: Answers the key question in 30 seconds */}
-        <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[8px] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[var(--text-secondary)]">
-              At <span className="text-[var(--text-primary)] font-semibold">{conditions.o2_percent.toFixed(1)}</span> % O₂
-              {' '}·{' '}
-              <span className="text-[var(--text-primary)] font-semibold">{conditions.pressure_kpa.toFixed(1)}</span> kPa
-              {' '}·{' '}
-              <span className="text-[var(--text-primary)] font-semibold">{conditions.flow_velocity_cm_s.toFixed(1)}</span> cm/s
-            </span>
-          </div>
-          {lowestRisk && highestRisk ? (
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[var(--text-tertiary)] uppercase text-[11px] tracking-[0.08em] font-medium">Lowest risk:</span>
-                <span className="font-medium text-[var(--text-primary)]">{lowestRisk.material_name}</span>
-                <BandBadge band={lowestRisk.band} />
-                <ConfidenceMeter level={lowestRisk.confidence} showLabel={false} />
-              </div>
-              <span className="text-[var(--border-strong)]">·</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[var(--text-tertiary)] uppercase text-[11px] tracking-[0.08em] font-medium">Highest:</span>
-                <span className="font-medium text-[var(--text-primary)]">{highestRisk.material_name}</span>
-                <BandBadge band={highestRisk.band} />
-              </div>
+          {/* Verdict Strip: Answers the key question in 30 seconds */}
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[8px] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[var(--text-secondary)]">
+                At <span className="text-[var(--text-primary)] font-semibold">{conditions.o2_percent.toFixed(1)}</span> % O₂
+                {' '}·{' '}
+                <span className="text-[var(--text-primary)] font-semibold">{conditions.pressure_kpa.toFixed(1)}</span> kPa
+                {' '}·{' '}
+                <span className="text-[var(--text-primary)] font-semibold">{conditions.flow_velocity_cm_s.toFixed(1)}</span> cm/s
+              </span>
             </div>
-          ) : (
-            <span className="text-[var(--text-tertiary)] italic">No ranking yet</span>
-          )}
-        </div>
-
-        {/* Workspace Grid (12 cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-          {/* Left Column: Ranked Risk Table (7 cols) */}
-          <div className="lg:col-span-7">
-            <RankedTable
-              rankings={rankings}
-              selectedMaterial={selectedMaterial}
-              onSelectMaterial={setSelectedMaterial}
-              chartMaterials={chartMaterials}
-              onToggleChartMaterial={handleToggleChartMaterial}
-              onOpenFormula={() => setIsFormulaOpen(true)}
-            />
+            {lowestRisk && highestRisk ? (
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[var(--text-tertiary)] uppercase text-[11px] tracking-[0.08em] font-medium">Lowest risk:</span>
+                  <span className="font-medium text-[var(--text-primary)]">{lowestRisk.material_name}</span>
+                  <BandBadge band={lowestRisk.band} />
+                  <ConfidenceMeter level={lowestRisk.confidence} showLabel={false} />
+                </div>
+                <span className="text-[var(--border-strong)]">·</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[var(--text-tertiary)] uppercase text-[11px] tracking-[0.08em] font-medium">Highest:</span>
+                  <span className="font-medium text-[var(--text-primary)]">{highestRisk.material_name}</span>
+                  <BandBadge band={highestRisk.band} />
+                </div>
+              </div>
+            ) : (
+              <span className="text-[var(--text-tertiary)] italic">No ranking yet</span>
+            )}
           </div>
 
-          {/* Right Column: Coverage Map (5 cols) */}
-          <div className="lg:col-span-5">
-            <CoverageMap coverage={coverage} conditions={conditions} />
-          </div>
+          {/* Workspace Grid (12 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+            {/* Left Column: Ranked Risk Table (7 cols) */}
+            <div className="lg:col-span-7">
+              <RankedTable
+                rankings={rankings}
+                selectedMaterial={selectedMaterial}
+                onSelectMaterial={setSelectedMaterial}
+                chartMaterials={chartMaterials}
+                onToggleChartMaterial={handleToggleChartMaterial}
+                onOpenFormula={() => setIsFormulaOpen(true)}
+              />
+            </div>
 
-          {/* Full Width Row Below: Empirical Combustion Comparison Charts (12 cols) */}
-          <div className="col-span-1 lg:col-span-12">
-            <ComparisonCharts
-              experiments={experiments}
-              selectedMaterials={chartMaterials}
-            />
+            {/* Right Column: Coverage Map (5 cols) */}
+            <div className="lg:col-span-5">
+              <CoverageMap coverage={coverage} conditions={conditions} />
+            </div>
+
+            {/* Full Width Row Below: Empirical Combustion Comparison Charts (12 cols) */}
+            <div className="col-span-1 lg:col-span-12">
+              <ComparisonCharts
+                experiments={experiments}
+                selectedMaterials={chartMaterials}
+              />
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      ) : (
+        <Team onBack={() => handleNavigate('dashboard')} />
+      )}
 
       {/* ─── Slide-over Drawers & Modals ─── */}
       {selectedMaterial && (
@@ -310,6 +349,12 @@ function App() {
       <AboutModal
         isOpen={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
+        onOpenTeam={() => handleNavigate('team')}
+      />
+
+      <ContextImpactModal
+        isOpen={isImpactOpen}
+        onClose={() => setIsImpactOpen(false)}
       />
 
       {/* ─── Footer ─── */}
@@ -320,7 +365,13 @@ function App() {
             <span>&middot;</span>
             <span>NASA Space Apps Challenge 2026</span>
             <span>&middot;</span>
-            <span className="font-mono text-[11px] text-[var(--text-secondary)]">Team Turtlers (Dhaka)</span>
+            <button
+              onClick={() => handleNavigate('team')}
+              className="font-mono text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline cursor-pointer"
+              title="Meet Team Turtlers"
+            >
+              Team Turtlers (Dhaka)
+            </button>
           </div>
 
           <div className="flex items-center gap-3 text-[11px] font-mono">
