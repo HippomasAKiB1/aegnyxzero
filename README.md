@@ -8,6 +8,8 @@
 
 [![NASA Space Apps](https://img.shields.io/badge/NASA%20Space%20Apps-2026%20Dhaka-0B3D91?style=for-the-badge&logo=nasa)](https://www.spaceappschallenge.org/)
 [![Challenge](https://img.shields.io/badge/Challenge%208-Flame%20in%20Freefall-FF6B35?style=for-the-badge)]()
+[![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?style=for-the-badge&logo=vercel)](https://aegnyxzero.vercel.app/)
+[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://aegnyxzero.onrender.com/health)
 [![Tests](https://img.shields.io/badge/tests-21%2F21%20passing-success?style=for-the-badge)]()
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](./LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -15,7 +17,7 @@
 
 Built by Team Turtlers for the NASA Space Apps Challenge 2026 (Dhaka Local Event)
 
-[Problem](#the-problem) · [Solution](#the-solution) · [Demo](#live-demo) · [How It Works](#how-it-works) · [Architecture](#architecture) · [Quick Start](#quick-start) · [Team](#team-turtlers)
+[Live App](https://aegnyxzero.vercel.app/) · [Live API](https://aegnyxzero.onrender.com/) · [Problem](#the-problem) · [Solution](#the-solution) · [Architecture](#architecture) · [API Endpoints](#rest-api-endpoints) · [Quick Start](#quick-start) · [Team](#team-turtlers)
 
 </div>
 
@@ -95,11 +97,19 @@ flowchart LR
 
 ---
 
-## Live Demo
+## Live Deployments & Interactive Links
 
-**[Explore the interactive repository](https://github.com/HippomasAKiB1/aegnyxzero)** (live web deployment coming soon)
+AegnyxZero is fully deployed and operational in production:
 
-To run it locally in about 60 seconds, see [Quick Start](#quick-start).
+| Service | Target URL | Description |
+|:---|:---|:---|
+| 🚀 **Web Application (Frontend)** | [https://aegnyxzero.vercel.app](https://aegnyxzero.vercel.app/) | Interactive decision instrument, sliders, 5x5 coverage map, team page & evidence inspector (Vercel) |
+| ⚡ **REST API (Backend)** | [https://aegnyxzero.onrender.com](https://aegnyxzero.onrender.com/) | FastAPI service executing deterministic risk scoring, coverage analysis & validation (Render) |
+| 📖 **Interactive API Docs** | [https://aegnyxzero.onrender.com/docs](https://aegnyxzero.onrender.com/docs) | Interactive Swagger UI for testing all REST endpoints |
+| 🩺 **Health & Liveness Check** | [https://aegnyxzero.onrender.com/health](https://aegnyxzero.onrender.com/health) | API health probe with dataset version (`v1`), live mode, and verified experiment counts |
+| 📦 **GitHub Repository** | [https://github.com/HippomasAKiB1/aegnyxzero](https://github.com/HippomasAKiB1/aegnyxzero) | Open-source monorepo (FastAPI, React 19, SQLite, ChromaDB) |
+
+To run the complete system locally in under 60 seconds, see [Quick Start](#quick-start).
 
 ---
 
@@ -107,9 +117,10 @@ To run it locally in about 60 seconds, see [Quick Start](#quick-start).
 
 ### Core principle
 
-> **Code validates. The LLM explains.**
+> **Code validates. The LLM explains.**  
+> *Every number verified against cited data.*
 
-Every AI-generated answer goes through a deterministic validation engine before it reaches the user. If a number does not exist in the cited NASA data, it is stripped from the response.
+All scoring and parameter comparisons are computed using pure Python math. The AI is an explainer, not a calculator or ranker. Every AI-generated claim goes through deterministic validators (V-1 through V-7) before it reaches the user. If any stated number does not exist in the cited NASA experiment records, the claim is immediately stripped from the response.
 
 ### Pipeline
 
@@ -241,7 +252,7 @@ All 33 experiment rows are curated from publicly available NASA research, with a
 | `src_bass` | BASS / BASS-II | ISS | NTRS 20150008962, NASA/TM-20210011385 |
 | `src_saffire` | Saffire I–VI | Cygnus | NTRS 20170008805, 20210011521, 20240002981 |
 | `src_sofie` | SoFIE-GEL | ISS | NASA ISS Research Explorer |
-| `src_droptower` | Drop-Tower Studies | NASA Zero-G | NTRS 19880006471 |
+| `src_drop` | Near-Limit Flame Spread in Drop Tower | NASA Zero-G | NTRS 19880006471 |
 | `src_explore` | Exploration Atmospheres | Ground | NASA/TP-2010-216134 |
 
 Data provenance is documented in [`data/SOURCES.md`](./data/SOURCES.md). We store extracted facts and short attributed excerpts. We do not redistribute full-text PDFs.
@@ -263,6 +274,26 @@ Data provenance is documented in [`data/SOURCES.md`](./data/SOURCES.md). We stor
 | **License** | MIT |
 
 **Total cost to run: $0.00.** Every component is free, open-source, or free-tier.
+
+---
+
+## REST API Endpoints
+
+The deployed FastAPI backend exposes the following documented endpoints:
+
+| Endpoint | Method | Description | Live Endpoint / Docs |
+|:---|:---:|:---|:---|
+| `/health` | `GET` | Health check probe returning status, dataset version, mode, and experiment count | [`/health`](https://aegnyxzero.onrender.com/health) |
+| `/experiments` | `GET` | Filtered, paginated NASA microgravity experiment records with empirical parameters | [`/experiments?limit=5`](https://aegnyxzero.onrender.com/experiments?limit=5) |
+| `/experiments/{id}` | `GET` | Single experiment record with citations, facility, and evidence span | [`/experiments/exp_0001`](https://aegnyxzero.onrender.com/experiments/exp_0001) |
+| `/risk-ranking` | `POST` | Deterministic flammability risk ranking with global spread normalization and broken ties | [`POST /risk-ranking`](https://aegnyxzero.onrender.com/docs#/default/risk_ranking_risk_ranking_post) |
+| `/coverage` | `POST` | 5×5 parameter space coverage grid, untested gap percentage, and closeness statement | [`POST /coverage`](https://aegnyxzero.onrender.com/docs#/default/coverage_coverage_post) |
+| `/ask` | `POST` | Plain-English safety QA with cited evidence and deterministic validation (V-1 to V-7) | [`POST /ask`](https://aegnyxzero.onrender.com/docs#/default/ask_ask_post) |
+| `/sources` | `GET` | All 5 bibliographic NASA sources with DOIs and NTRS links | [`/sources`](https://aegnyxzero.onrender.com/sources) |
+| `/feedback` | `POST` / `GET` | Record and list expert reviews for the audit review log | [`/feedback`](https://aegnyxzero.onrender.com/feedback) |
+| `/export` | `GET` | Export current conditions and ranking as CSV or JSON | [`/export?format=csv`](https://aegnyxzero.onrender.com/export?format=csv) |
+
+Interactive Swagger documentation is available at **[https://aegnyxzero.onrender.com/docs](https://aegnyxzero.onrender.com/docs)**.
 
 ---
 
@@ -396,12 +427,12 @@ aegnyxzero/
 
 ## Limitations and Disclosures
 
-AegnyxZero is decision support, not certified safety software.
+AegnyxZero is an evidence-first decision support instrument, not certified flight safety software.
 
-- **Solid-material scope only.** Droplet, gaseous-flame, and smoke experiments are on the roadmap.
-- **Prototype dataset.** 33 rows from 5 sources. Official challenge datasets will be ingested through the adapter layer when they are released.
-- **Scoring weights are team assumptions.** They are marked as such in the UI and are not NASA-validated values.
-- **The LLM can still be wrong.** V-1 to V-7 catch and strip ungrounded claims before display.
+- **Solid-material scope only.** Droplet, gaseous-flame, and smoke experiments are on the technical roadmap.
+- **Prototype dataset (`PROTOTYPE DATA - NASA PDFs`).** 33 rows curated from 5 peer-reviewed NASA reports and papers (BASS-II, Saffire, SoFIE-GEL, Drop Tower, Exploration Atmospheres) with exact page citations and evidence spans.
+- **Scoring weights are team assumptions.** Clearly marked as such in the UI (Formula Modal) and are not certified NASA thresholds.
+- **Deterministic Verification.** V-1 through V-7 validators verify every number against cited empirical data rows before display. The LLM is an explainer, not a calculator or ranker.
 
 What AegnyxZero cannot tell you is shown in a persistent panel in the app.
 
@@ -421,9 +452,26 @@ What AegnyxZero cannot tell you is shown in a persistent panel in the app.
 
 ## Team Turtlers
 
-We are ready for the NASA Space Apps Challenge 2026, Dhaka Local Event.
+Built for the **2026 NASA Space Apps Challenge — Dhaka Local Event**  
+*Problem 8: Flame in Freefall*
 
-![Turtlers](./team_image.png)
+<div align="center">
+  <img src="./team_image.png" alt="Team Turtlers" width="640" style="border-radius: 8px; border: 1px solid #333;" />
+</div>
+
+<br/>
+
+### Member Roster
+
+| Member | Role & Responsibilities |
+|:---|:---|
+| **Akib Hasan Pyil** | Team Leader, Full-Stack Architect, AI Pipeline |
+| **Nazat E Rose Rhythm** | Frontend & UX Design |
+| **Jafir Islam Siam** | Full-Stack Developer |
+| **Tauhid Sarker** | Pitcher / Presenter |
+| **Arnob Das** | Data Engineering & Analysis |
+
+> *"Built with 48 hours of caffeine, curiosity, and code. AegnyxZero is our contribution to making the next giant leap a safer one."*
 
 ---
 
