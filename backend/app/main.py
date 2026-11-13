@@ -43,6 +43,89 @@ from .config import get_settings
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
 
+
+def _auto_seed_db():
+    """Auto-seed SQLite database if empty on startup (e.g. fresh cloud deploy)."""
+    db = Session(bind=engine)
+    try:
+        count = db.query(Experiment).count()
+        if count > 0:
+            return
+
+        print("[STARTUP] Database empty. Auto-seeding from CSV...")
+        candidates = [
+            Path(__file__).resolve().parent.parent / "data",
+            Path(__file__).resolve().parent.parent.parent / "data",
+        ]
+        data_dir = next((d for d in candidates if (d / "seed_data.csv").exists()), None)
+        if not data_dir:
+            print("[STARTUP] No seed data CSV directory found.")
+            return
+
+        # 1. Load Sources
+        sources_csv = data_dir / "sources.csv"
+        if sources_csv.exists():
+            with open(sources_csv, newline="", encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    s = Source(
+                        id=row["id"].strip(),
+                        title=row.get("title", "").strip() or None,
+                        authors=row.get("authors", "").strip() or None,
+                        year=int(row["year"]) if row.get("year", "").strip().isdigit() else None,
+                        doi=row.get("doi", "").strip() or None,
+                        url=row.get("url", "").strip() or None,
+                        type=row.get("type", "").strip() or None,
+                        license=row.get("license", "").strip() or None,
+                        local_path=row.get("local_path", "").strip() or None,
+                    )
+                    db.merge(s)
+            db.commit()
+
+        # 2. Load Experiments
+        seed_csv = data_dir / "seed_data.csv"
+        if seed_csv.exists():
+            def _parse_float(v):
+                v = (v or "").strip()
+                if not v or v.lower() == "null":
+                    return None
+                try:
+                    return float(v)
+                except ValueError:
+                    return None
+
+            with open(seed_csv, newline="", encoding="utf-8") as f:
+                for row in csv.DictReader(f):
+                    exp = Experiment(
+                        id=row["id"].strip(),
+                        material_name=row.get("material_name", "").strip() or None,
+                        material_class=row.get("material_class", "").strip() or None,
+                        geometry=row.get("geometry", "").strip() or None,
+                        thickness_mm=_parse_float(row.get("thickness_mm")),
+                        oxidizer=row.get("oxidizer", "").strip() or None,
+                        o2_percent=_parse_float(row.get("o2_percent")),
+                        pressure_kpa=_parse_float(row.get("pressure_kpa")),
+                        flow_velocity_cm_s=_parse_float(row.get("flow_velocity_cm_s")),
+                        gravity_level=row.get("gravity_level", "").strip() or None,
+                        outcome=row.get("outcome", "").strip() or None,
+                        spread_rate_mm_s=_parse_float(row.get("spread_rate_mm_s")),
+                        source_id=row.get("source_id", "").strip() or None,
+                        source_page=row.get("source_page", "").strip() or None,
+                        evidence_span=row.get("evidence_span", "").strip() or None,
+                        facility=row.get("facility", "").strip() or None,
+                        verified=1 if str(row.get("verified", "")).strip() in ("1", "true", "True") else 0,
+                    )
+                    db.merge(exp)
+            db.commit()
+            print(f"[STARTUP] Auto-seeding completed: {db.query(Experiment).count()} experiments loaded.")
+    except Exception as e:
+        print(f"[STARTUP] Auto-seed failed: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+_auto_seed_db()
+
 app = FastAPI(
     title="AegnyxZero API",
     description="Evidence-first fire safety for human spaceflight",

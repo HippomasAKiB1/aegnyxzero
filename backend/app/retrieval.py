@@ -44,7 +44,50 @@ def get_chroma_collection():
     global _CHROMA_CLIENT
     if _CHROMA_CLIENT is None:
         _CHROMA_CLIENT = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    return _CHROMA_CLIENT.get_collection(name=COLLECTION_NAME)
+    try:
+        return _CHROMA_CLIENT.get_collection(name=COLLECTION_NAME)
+    except Exception:
+        return _CHROMA_CLIENT.get_or_create_collection(name=COLLECTION_NAME)
+
+
+def _fallback_sqlite_search(query: str, top_k: int = 6, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """Fallback semantic search using direct SQLite matching if Chroma is empty."""
+    from .database import SessionLocal
+    from .models import Experiment
+    db = SessionLocal()
+    try:
+        q = db.query(Experiment)
+        if filters:
+            if filters.get("gravity_level"):
+                q = q.filter(Experiment.gravity_level == filters["gravity_level"])
+            if filters.get("material_class"):
+                q = q.filter(Experiment.material_class == filters["material_class"])
+        rows = q.all()
+        tokens = set(query.lower().split())
+        scored = []
+        for r in rows:
+            text = f"{r.material_name or ''} {r.material_class or ''} {r.outcome or ''} {r.evidence_span or ''}".lower()
+            overlap = sum(1 for t in tokens if t in text)
+            scored.append((overlap, r))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        results = []
+        for _, r in scored[:top_k]:
+            results.append({
+                "experiment_id": r.id,
+                "text": f"{r.material_name}: {r.outcome} spread rate {r.spread_rate_mm_s} mm/s at {r.o2_percent}% O2",
+                "metadata": {
+                    "experiment_id": r.id,
+                    "material_name": r.material_name,
+                    "gravity_level": r.gravity_level,
+                    "outcome": r.outcome,
+                },
+                "score": 0.8,
+            })
+        return results
+    except Exception:
+        return []
+    finally:
+        db.close()
 
 
 def search_experiments(
@@ -84,42 +127,49 @@ def search_experiments(
         elif len(clean_filters) > 1:
             where_clause = {"$and": [{k: v} for k, v in clean_filters.items()]}
 
-    # 2. Compute normalized query embedding with cached model
-    model = get_embedding_model()
-    query_emb = model.encode(query.strip(), normalize_embeddings=True).tolist()
+    try:
+        collection = get_chroma_collection()
+        if collection.count() == 0:
+            return _fallback_sqlite_search(query, top_k, filters)
 
-    # 3. Query ChromaDB collection
-    collection = get_chroma_collection()
-    raw = collection.query(
-        query_embeddings=[query_emb],
-        n_results=top_k,
-        where=where_clause,
-    )
+        # 2. Compute normalized query embedding with cached model
+        model = get_embedding_model()
+        query_emb = model.encode(query.strip(), normalize_embeddings=True).tolist()
 
-    # 4. Format results
-    results: List[Dict[str, Any]] = []
-    if raw and raw.get("ids") and raw["ids"][0]:
-        ids = raw["ids"][0]
-        documents = raw["documents"][0] if raw.get("documents") else []
-        metadatas = raw["metadatas"][0] if raw.get("metadatas") else []
-        distances = raw["distances"][0] if raw.get("distances") else []
+        # 3. Query ChromaDB collection
+        raw = collection.query(
+            query_embeddings=[query_emb],
+            n_results=top_k,
+            where=where_clause,
+        )
 
-        for i in range(len(ids)):
-            meta = metadatas[i] if i < len(metadatas) else {}
-            doc_text = documents[i] if i < len(documents) else ""
-            dist = distances[i] if i < len(distances) else 1.0
-            
-            # hnsw:space cosine -> distance = 1 - cosine_sim -> score = 1 - distance
-            score = round(float(1.0 - dist), 4)
+        # 4. Format results
+        results: List[Dict[str, Any]] = []
+        if raw and raw.get("ids") and raw["ids"][0]:
+            ids = raw["ids"][0]
+            documents = raw["documents"][0] if raw.get("documents") else []
+            metadatas = raw["metadatas"][0] if raw.get("metadatas") else []
+            distances = raw["distances"][0] if raw.get("distances") else []
 
-            results.append({
-                "experiment_id": meta.get("experiment_id", ""),
-                "text": doc_text,
-                "metadata": meta,
-                "score": score,
-            })
+            for i in range(len(ids)):
+                meta = metadatas[i] if i < len(metadatas) else {}
+                doc_text = documents[i] if i < len(documents) else ""
+                dist = distances[i] if i < len(distances) else 1.0
+                
+                # hnsw:space cosine -> distance = 1 - cosine_sim -> score = 1 - distance
+                score = round(float(1.0 - dist), 4)
 
-    return results
+                results.append({
+                    "experiment_id": meta.get("experiment_id", ""),
+                    "text": doc_text,
+                    "metadata": meta,
+                    "score": score,
+                })
+
+        return results
+    except Exception as e:
+        print(f"Chroma retrieval failed ({e}), falling back to SQLite search.")
+        return _fallback_sqlite_search(query, top_k, filters)
 
 
 def search_by_experiment_ids(ids: List[str]) -> List[Dict[str, Any]]:

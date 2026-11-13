@@ -7,9 +7,11 @@ data/raw/
 *.db
 *.sqlite
 *.sqlite3
+!backend/aegnyxzero.db
+!backend/chroma_db/**
 
-# Vector store
-backend/chroma_db/
+# Vector store (unignored for production deployment)
+!backend/chroma_db/
 
 # Python
 __pycache__/
