@@ -9,5 +9,6 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: DEMO_MODE
+        value: "false"
+      - key: USE_V2_PIPELINE
         value: "true"
-

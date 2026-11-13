@@ -38,6 +38,7 @@ from .schemas import (
 from .scoring import ExperimentRow, UserConditions, rank_materials
 from .coverage import compute_coverage
 from .ask_ai import handle_ask_query
+from .config import get_settings
 
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
@@ -63,7 +64,14 @@ app.add_middleware(
 @app.get("/health", response_model=HealthResponse)
 def health():
     """Liveness probe + dataset version + mode (PRD §14.2)."""
-    return {"status": "ok", "dataset_version": "v1", "mode": "demo"}
+    settings = get_settings()
+    custom_mode = os.getenv("MODE") or os.getenv("APP_MODE")
+    if custom_mode:
+        mode = custom_mode.strip()
+    else:
+        is_demo = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
+        mode = "demo" if is_demo else "live"
+    return {"status": "ok", "dataset_version": settings.dataset_version, "mode": mode}
 
 
 @app.get("/sources", response_model=list[SourceResponse])
