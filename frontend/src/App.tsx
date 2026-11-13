@@ -377,7 +377,7 @@ function App() {
           <div className="flex items-center gap-3 text-[11px] font-mono">
             <span>Problem 8: Flame in Freefall</span>
             <span>&middot;</span>
-            <span>Deterministic Math &middot; Zero Hallucination</span>
+            <span>Deterministic Math &middot; Every number verified against cited data.</span>
           </div>
         </div>
       </footer>

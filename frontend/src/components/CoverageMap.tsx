@@ -42,7 +42,7 @@ export const CoverageMap: React.FC<CoverageMapProps> = ({ coverage }) => {
       {/* Closeness statement */}
       <div className="p-2.5 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-inset)] text-xs flex items-center gap-2">
         <Reticle size={14} pulse={false} />
-        <p className="text-[var(--text-secondary)] leading-snug truncate">
+        <p className="text-[var(--text-secondary)] leading-snug">
           {closeness_statement}
         </p>
       </div>

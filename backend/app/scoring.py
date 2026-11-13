@@ -30,8 +30,8 @@ SPREAD_WEIGHT = 0.4
 
 # ─── Constants (PRD §13.2) ────────────────────────────────────────
 
-PROXIMITY_BIN_EXACT = 0.10   # ≤ 10% → 1.0
-PROXIMITY_BIN_CLOSE = 0.20   # ≤ 20% → 0.5
+PROXIMITY_BIN_EXACT = 0.15   # ≤ 15% → 1.0
+PROXIMITY_BIN_CLOSE = 0.30   # ≤ 30% → 0.5
 ABSOLUTE_TOLERANCE = 1.0     # used when user value is 0
 
 GRAVITY_MISMATCH_PENALTY = 0.5
@@ -183,11 +183,13 @@ def calculate_proximity_weight(
     if not any_dimension_used:
         return 0.0
 
-    # Gravity mismatch penalty: ×0.5 if levels differ
+    # Gravity mismatch penalty: ×0.5 if levels differ (Bug L-03: skip if user selects 'any' or 'all')
+    user_gravity = conditions.gravity_level.lower() if conditions.gravity_level else None
     if (
-        conditions.gravity_level is not None
+        user_gravity
+        and user_gravity not in ("any", "all")
         and row.gravity_level is not None
-        and row.gravity_level != conditions.gravity_level
+        and row.gravity_level.lower() != user_gravity
     ):
         w_i *= GRAVITY_MISMATCH_PENALTY
 
@@ -207,6 +209,7 @@ def _get_band(score: float) -> str:
 def calculate_material_score(
     rows: list[ExperimentRow],
     conditions: UserConditions,
+    max_spread_rate: Optional[float] = None,
 ) -> tuple[Optional[float], Optional[str], bool]:
     """
     Calculate the aggregated risk score for one material (PRD §13.3).
@@ -220,11 +223,12 @@ def calculate_material_score(
     if not rows:
         return None, None, True
 
-    # Find max spread rate across all input rows for normalization
-    spread_rates = [
-        r.spread_rate_mm_s for r in rows if r.spread_rate_mm_s is not None
-    ]
-    max_spread_rate = max(spread_rates) if spread_rates else 0.0
+    # Find max spread rate for normalization (default to input rows if not provided)
+    if max_spread_rate is None or max_spread_rate <= 0:
+        spread_rates = [
+            r.spread_rate_mm_s for r in rows if r.spread_rate_mm_s is not None
+        ]
+        max_spread_rate = max(spread_rates) if spread_rates else 0.0
 
     sum_w_risk = 0.0
     sum_w = 0.0
@@ -243,9 +247,12 @@ def calculate_material_score(
         sum_w_risk += w_i * raw_risk
         sum_w += w_i
 
-    # Insufficient evidence check (PRD §13.3)
-    if sum_w < INSUFFICIENT_EVIDENCE_THRESHOLD:
-        return None, None, True
+    # Bug L-02 fallback:
+    # If a material has 0 weight due to the new bins, but has rows in the database,
+    # do NOT hide it. Give it a score of 0 with band "Low", confidence "None",
+    # and reason "No data near selected conditions" (insufficient = False so it stays in table).
+    if sum_w <= 0.0:
+        return 0.0, "Low", False
 
     score = 100.0 * sum_w_risk / sum_w
     score = min(max(score, 0.0), 100.0)  # clamp
@@ -290,7 +297,7 @@ def calculate_confidence(
         reasons.append("1 investigation only")
     else:
         level = "None"
-        reasons.append("no relevant data")
+        reasons.append("No data near selected conditions")
         return level, reasons
 
     # Any unverified row lowers confidence by one step
@@ -362,7 +369,7 @@ def generate_limitations(
             limitations.append(f"No data near {conditions.flow_velocity_cm_s} cm/s flow velocity.")
 
     # Gravity mismatch
-    if conditions.gravity_level is not None:
+    if conditions.gravity_level is not None and conditions.gravity_level.lower() not in ("any", "all"):
         gravity_levels_in_data = {r.gravity_level for r in rows if r.gravity_level}
         if conditions.gravity_level not in gravity_levels_in_data:
             limitations.append(
@@ -408,11 +415,17 @@ def rank_materials(
         name = row.material_name or "Unknown"
         materials.setdefault(name, []).append(row)
 
+    # Calculate max spread rate across the ENTIRE dataset for global normalization (Bug L-01)
+    all_spread_rates = [
+        r.spread_rate_mm_s for r in all_rows if r.spread_rate_mm_s is not None
+    ]
+    global_max_spread = max(all_spread_rates) if all_spread_rates else 0.0
+
     results: list[ScoredMaterial] = []
 
     for mat_name, mat_rows in materials.items():
         score, band, insufficient = calculate_material_score(
-            mat_rows, conditions
+            mat_rows, conditions, max_spread_rate=global_max_spread
         )
         confidence, conf_reasons = calculate_confidence(
             mat_rows, conditions

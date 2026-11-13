@@ -207,17 +207,65 @@ async def synthesize_node(state: PipelineState) -> Dict[str, Any]:
         }
 
     # 3. Grounded Synthesis via LLM Gateway
+    # Bug A-03: Compute official /risk-ranking to inject into LLM prompt
+    ranking_summary_lines = []
+    try:
+        from .database import SessionLocal
+        from .models import Experiment
+        from .scoring import rank_materials, ExperimentRow, UserConditions
+
+        db = SessionLocal()
+        try:
+            experiments = db.query(Experiment).all()
+            exp_rows = [
+                ExperimentRow(
+                    id=e.id,
+                    material_name=e.material_name or "Unknown",
+                    material_class=e.material_class,
+                    o2_percent=e.o2_percent,
+                    pressure_kpa=e.pressure_kpa,
+                    flow_velocity_cm_s=e.flow_velocity_cm_s,
+                    gravity_level=e.gravity_level,
+                    outcome=e.outcome,
+                    spread_rate_mm_s=e.spread_rate_mm_s,
+                    source_id=e.source_id,
+                    verified=e.verified or 0,
+                )
+                for e in experiments
+            ]
+            user_cond = UserConditions(
+                o2_percent=conditions.get("o2_percent"),
+                pressure_kpa=conditions.get("pressure_kpa"),
+                flow_velocity_cm_s=conditions.get("flow_velocity_cm_s"),
+                gravity_level=conditions.get("gravity_level", "microgravity"),
+                material_class=conditions.get("material_class"),
+            )
+            ranked = rank_materials(exp_rows, user_cond)
+            for idx, m in enumerate(ranked[:5], 1):
+                ranking_summary_lines.append(
+                    f"Rank {idx}: {m.material_name} — Score: {m.score:.1f}/100 (Band: {m.band}, Confidence: {m.confidence}, Experiments: {m.num_experiments})"
+                )
+        finally:
+            db.close()
+    except Exception as e:
+        ranking_summary_lines.append(f"Ranking computation unavailable: {e}")
+
+    ranking_context = "\n".join(ranking_summary_lines) if ranking_summary_lines else "No ranking available."
+
     system_prompt = (
         "You are AegnyxZero, an evidence-first fire safety expert system for human spaceflight.\n"
         "You analyze microgravity solid-material combustion data from NASA experiments.\n\n"
+        "OFFICIAL SYSTEM RISK RANKING (FROM DETERMINISTIC RISK-RANKING ENGINE):\n"
+        f"{ranking_context}\n\n"
         "CRITICAL SAFETY RULES:\n"
-        "1. Ground every claim STRICTLY in the provided evidence pack. Do NOT use outside memory or hallucinate.\n"
-        "2. NEVER invent, extrapolate, or approximate numbers. Every number you state MUST exactly match a numerical value from the cited experiment row.\n"
-        "3. If the evidence pack does not contain sufficient data to answer the question, your summary MUST state: 'I can't answer this from the available data' and explain what data is missing. Set findings to [].\n"
-        "4. If the user question is out of domain or unrelated to spaceflight fire safety, provide a polite scope refusal and set findings to [].\n"
-        "5. Every finding MUST cite at least one valid experiment_id and source_id from the evidence pack.\n"
-        "6. An 'extinguished' claim must NEVER cite a sustained_spread experiment, and vice versa.\n"
-        "7. Output MUST be ONLY a single valid JSON object with NO surrounding markdown or explanations.\n\n"
+        "1. You are an explainer, not a ranker. You MUST explain the provided ranking. Do NOT calculate your own scores or invent a different highest-risk material.\n"
+        "2. Ground every claim STRICTLY in the provided evidence pack. Do NOT use outside memory or hallucinate.\n"
+        "3. NEVER invent, extrapolate, or approximate numbers. Every number you state MUST exactly match a numerical value from the cited experiment row.\n"
+        "4. If the evidence pack does not contain sufficient data to answer the question, your summary MUST state: 'I can't answer this from the available data' and explain what data is missing. Set findings to [].\n"
+        "5. If the user question is out of domain or unrelated to spaceflight fire safety, provide a polite scope refusal and set findings to [].\n"
+        "6. Every finding MUST cite at least one valid experiment_id and source_id from the evidence pack.\n"
+        "7. An 'extinguished' claim must NEVER cite a sustained_spread experiment, and vice versa.\n"
+        "8. Output MUST be ONLY a single valid JSON object with NO surrounding markdown or explanations.\n\n"
         "JSON OUTPUT SCHEMA:\n"
         "{\n"
         '  "summary": "string (concise summary <= 120 words)",\n'
@@ -242,6 +290,8 @@ async def synthesize_node(state: PipelineState) -> Dict[str, Any]:
     user_msg = (
         f"USER QUESTION: {question}\n"
         f"USER CONDITIONS: {conditions}\n\n"
+        f"OFFICIAL RISK RANKING:\n"
+        f"{ranking_context}\n\n"
         f"EVIDENCE PACK (VERIFIED NASA EXPERIMENT DATA):\n"
         f"{context_pack}\n\n"
         f"Output valid JSON conforming to the schema:"

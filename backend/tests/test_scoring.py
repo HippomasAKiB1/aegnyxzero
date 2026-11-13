@@ -54,12 +54,12 @@ def test_tc_s1_single_material_exact_match():
 
 
 def test_tc_s2_proximity_weights():
-    """TC-S2: Relative difference <=10% -> 1.0; <=20% -> 0.5; >20% -> 0.0."""
+    """TC-S2: Relative difference <=15% -> 1.0; <=30% -> 0.5; >30% -> 0.0."""
     # user = 100.0
-    w_exact = _dimension_weight(105.0, 100.0)  # 5% diff
+    w_exact = _dimension_weight(115.0, 100.0)  # 15% diff
     assert w_exact == 1.0
 
-    w_close = _dimension_weight(115.0, 100.0)  # 15% diff
+    w_close = _dimension_weight(125.0, 100.0)  # 25% diff
     assert w_close == 0.5
 
     w_far = _dimension_weight(135.0, 100.0)    # 35% diff
@@ -67,7 +67,7 @@ def test_tc_s2_proximity_weights():
 
 
 def test_tc_s3_insufficient_evidence():
-    """TC-S3: All rows far from conditions (sum(w_i) < 1.0) -> Insufficient evidence, no score."""
+    """TC-S3: All rows far from conditions (0 weight due to new bins) -> Fallback: score=0, confidence='None', reason='No data near selected conditions'."""
     row = ExperimentRow(
         id="exp_test_far",
         material_name="Exotic Fabric",
@@ -87,8 +87,10 @@ def test_tc_s3_insufficient_evidence():
     )
     ranked = rank_materials([row], cond)
     assert len(ranked) == 1
-    assert ranked[0].insufficient_evidence is True
-    assert ranked[0].score is None
+    assert ranked[0].score == 0.0
+    assert ranked[0].confidence == "None"
+    assert "No data near selected conditions" in ranked[0].confidence_reasons
+    assert ranked[0].insufficient_evidence is False
 
 
 def test_tc_s4_null_spread_rate():

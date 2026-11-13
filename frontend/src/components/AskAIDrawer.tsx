@@ -4,6 +4,7 @@ import {
   Send,
   CheckCircle2,
   Flag,
+  AlertTriangle,
 } from 'lucide-react'
 import { ConfidenceMeter, ValidationPill, Reticle } from './ui'
 import type { AskResponse, UserConditions } from '../types'
@@ -31,6 +32,7 @@ export const AskAIDrawer: React.FC<AskAIDrawerProps> = ({
   const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState<AskResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [feedbackGiven, setFeedbackGiven] = useState<'approve' | 'flag' | null>(null)
 
   if (!isOpen) return null
@@ -40,6 +42,8 @@ export const AskAIDrawer: React.FC<AskAIDrawerProps> = ({
     if (!q) return
 
     setLoading(true)
+    setError(null)
+    setAnswer(null)
     setFeedbackGiven(null)
 
     try {
@@ -59,46 +63,8 @@ export const AskAIDrawer: React.FC<AskAIDrawerProps> = ({
       const data: AskResponse = await res.json()
       setAnswer(data)
     } catch (err: unknown) {
-      console.warn('Live /ask failed, falling back to local simulation:', err)
-      // Robust offline demo simulation fallback
-      setAnswer({
-        answer_id: 'offline-demo-id',
-        question: q,
-        summary:
-          'Lunar habitat conditions (30% O2, 70 kPa) elevate flammability significantly. Cotton-fiberglass fabric (SIBAL) and PMMA acrylic burn with sustained spread reaching 4.2–5.8 mm/s in NASA tests, whereas Nomex HT90-40 aramid forms a protective char layer with marginal localized smoldering.',
-        findings: [
-          {
-            claim: 'SIBAL fabric experiences accelerated flame spread of 5.8 mm/s at 30% O2, 70 kPa microgravity.',
-            numbers: [
-              { value: 5.8, unit: 'mm/s', label: 'Spread rate', experiment_id: 'exp_0013' },
-              { value: 30.0, unit: '%', label: 'Oxygen', experiment_id: 'exp_0013' },
-            ],
-            evidence: [{ experiment_id: 'exp_0013', source_id: 'src_saffire', page: 'p.8 Fig.5' }],
-          },
-        ],
-        confidence: {
-          level: 'High',
-          score: 0.9,
-          reasons: ['Offline verified snapshot of Saffire & BASS-II data'],
-        },
-        limitations: ['Running in offline demo mode.'],
-        validation: {
-          passed: true,
-          checks: [
-            { id: 'V-1', name: 'Schema Conformance', status: 'pass', message: 'Conforms to schema' },
-            { id: 'V-2', name: 'Citation Grounding', status: 'pass', message: 'All findings cited' },
-            { id: 'V-3', name: 'Number Grounding', status: 'pass', message: 'All numbers verified' },
-          ],
-        },
-        follow_ups: ['What happens to SIBAL fabric when ventilation airflow drops to 0 cm/s?'],
-        meta: {
-          provider: 'offline_snapshot_engine',
-          model: 'grounded-demo',
-          cached: true,
-          dataset_version: 'v1.1',
-          latency_ms: 10,
-        },
-      })
+      console.warn('Live /ask failed:', err)
+      setError('AI connection lost. Please check backend status. Rankings and Evidence remain available.')
     } finally {
       setLoading(false)
     }
@@ -199,14 +165,21 @@ export const AskAIDrawer: React.FC<AskAIDrawerProps> = ({
               </div>
             )}
 
-            {!loading && !answer && (
+            {!loading && error && (
+              <div className="p-4 rounded-[6px] border border-[var(--check-fail)] bg-[var(--check-fail)]/10 text-[var(--check-fail)] text-xs flex items-center gap-2.5">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span className="font-medium">{error}</span>
+              </div>
+            )}
+
+            {!loading && !answer && !error && (
               <div className="h-44 flex flex-col items-center justify-center gap-2 text-xs text-[var(--text-tertiary)] border border-[var(--border-subtle)] rounded-[6px] bg-[var(--bg-inset)] text-center p-6">
                 <Reticle size={16} pulse={false} />
                 <span className="font-sans font-medium text-[var(--text-secondary)]">
                   Ask a question above to retrieve cited empirical facts
                 </span>
                 <span className="text-[12px] text-[var(--text-tertiary)] max-w-md">
-                  All math and risk scoring is purely deterministic. The AI never invents numbers.
+                  All math and risk scoring is purely deterministic. Every number verified against cited data.
                 </span>
               </div>
             )}

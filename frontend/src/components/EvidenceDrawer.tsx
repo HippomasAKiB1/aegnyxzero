@@ -332,7 +332,7 @@ export const EvidenceDrawer: React.FC<EvidenceDrawerProps> = ({
               />
               <ValidationRow
                 id="V-3"
-                name="Zero Hallucination Rule"
+                name="Every number verified against cited data."
                 status={material.insufficient_evidence ? 'warn' : 'pass'}
                 message={
                   material.insufficient_evidence

@@ -37,7 +37,7 @@ def test_tc_v1_and_v2_invalid_citation_dropped():
 
 
 def test_tc_v3_ungrounded_number_stripped():
-    """TC-V3: Number not matching cited rows is flagged/stripped."""
+    """TC-V3: Number not matching cited rows fails V-3 and strips the claim."""
     retrieved = [
         {"id": "exp_0001", "material_name": "PMMA", "o2_percent": 21.0, "pressure_kpa": 101.3, "spread_rate_mm_s": 2.1}
     ]
@@ -53,10 +53,33 @@ def test_tc_v3_ungrounded_number_stripped():
         "confidence": {"level": "High", "score": 0.9},
     }
     result = validate_ai_answer(answer, retrieved)
-    # The hallucinated number should be stripped from the finding
-    assert len(answer["findings"][0]["numbers"]) == 0
+    # The claim with hallucinated number should be stripped
+    assert len(answer["findings"]) == 0
+    assert result["passed"] is False
     v3_check = next(c for c in result["checks"] if c["id"] == "V-3")
-    assert v3_check["status"] == "warn"
+    assert v3_check["status"] == "fail"
+
+
+def test_tc_v3_grounded_number_preserved():
+    """TC-V3: Stated numbers matching cited rows pass V-3 and keep the claim."""
+    retrieved = [
+        {"id": "exp_0001", "material_name": "PMMA", "o2_percent": 21.0, "pressure_kpa": 101.3, "spread_rate_mm_s": 2.1}
+    ]
+    answer = {
+        "summary": "At 21.0 % O2, PMMA burned.",
+        "findings": [
+            {
+                "claim": "PMMA flame spread rate was 2.1 mm/s at 101.3 kPa.",
+                "numbers": [{"value": 2.1, "unit": "mm/s", "label": "spread rate", "experiment_id": "exp_0001"}],
+                "evidence": [{"experiment_id": "exp_0001", "source_id": "src_1", "page": "p.1"}],
+            }
+        ],
+        "confidence": {"level": "High", "score": 0.9},
+    }
+    result = validate_ai_answer(answer, retrieved)
+    assert len(answer["findings"]) == 1
+    v3_check = next(c for c in result["checks"] if c["id"] == "V-3")
+    assert v3_check["status"] == "pass"
 
 
 def test_tc_v5_outcome_contradiction_detected():

@@ -10,6 +10,7 @@ Implements pure Python validators:
   V-7: Overreach detection (warn if claim conditions exceed cited data domain)
 """
 
+import re
 from typing import Any
 
 
@@ -66,7 +67,6 @@ def validate_ai_answer(answer: dict[str, Any], retrieved_experiments: list[dict[
             if isinstance(ev, dict):
                 exp_id = ev.get("experiment_id")
             elif isinstance(ev, str):
-                import re
                 m = re.search(r"exp_\d{4}", ev)
                 exp_id = m.group(0) if m else ev
             else:
@@ -93,75 +93,105 @@ def validate_ai_answer(answer: dict[str, Any], retrieved_experiments: list[dict[
         overall_passed = False
         answer["findings"] = valid_findings
 
-    # ─── V-3: Number Grounding ────────────────────────────────────────
+    # ─── V-3: Number Grounding (Bug A-02) ─────────────────────────────
     v3_pass = True
     unverified_numbers = []
 
-    for f in answer.get("findings", []):
-        cited_rows = [retrieved_by_id[ev["experiment_id"]] for ev in f.get("evidence", []) if isinstance(ev, dict) and ev.get("experiment_id") in retrieved_by_id]
-        clean_numbers = []
+    def _matches_any_candidate(val: float, candidates: list[Any]) -> bool:
+        for c in candidates:
+            if c is not None and isinstance(c, (int, float)):
+                if abs(float(c) - val) <= max(0.05, abs(float(c)) * 0.01):
+                    return True
+        return False
 
+    # 1. Verify numbers in summary against all retrieved experiments
+    all_retrieved_candidates = []
+    for exp in retrieved_experiments:
+        for k in ["o2_percent", "pressure_kpa", "flow_velocity_cm_s", "spread_rate_mm_s", "thickness_mm"]:
+            v = exp.get(k)
+            if v is not None and isinstance(v, (int, float)):
+                all_retrieved_candidates.append(float(v))
+
+    def _extract_physical_numbers(text: str) -> list[float]:
+        # Strip citations, page numbers, table/fig references
+        clean = re.sub(r'(?i)\b(?:exp_|src_|p\.\s*|page\s*|table\s*|fig\.\s*|figure\s*|#)\d+', '', text)
+        # Match numbers not part of chemical symbols (like O2, CO2) or identifiers
+        raw_matches = re.finditer(r'(?<![a-zA-Z_])\d+(?:\.\d+)?(?![a-zA-Z_])', clean)
+        return [float(m.group(0)) for m in raw_matches]
+
+    summary_text = answer.get("summary", "") or ""
+    summary_numbers = _extract_physical_numbers(summary_text)
+
+    for s_num in summary_numbers:
+        if not _matches_any_candidate(s_num, all_retrieved_candidates):
+            v3_pass = False
+            unverified_numbers.append(f"{s_num} in summary")
+
+    # 2. Verify numbers in claims and numbers array; strip claim if unverified
+    clean_findings = []
+    for f in answer.get("findings", []):
+        cited_rows = [
+            retrieved_by_id[ev["experiment_id"]]
+            for ev in f.get("evidence", [])
+            if isinstance(ev, dict) and ev.get("experiment_id") in retrieved_by_id
+        ]
+        if not cited_rows:
+            v3_pass = False
+            continue
+
+        cited_candidates = []
+        for row in cited_rows:
+            for k in ["o2_percent", "pressure_kpa", "flow_velocity_cm_s", "spread_rate_mm_s", "thickness_mm"]:
+                v = row.get(k)
+                if v is not None and isinstance(v, (int, float)):
+                    cited_candidates.append(float(v))
+
+        claim_valid = True
+        claim_text = f.get("claim", "") or ""
+        claim_numbers = _extract_physical_numbers(claim_text)
+
+        for c_num in claim_numbers:
+            if not _matches_any_candidate(c_num, cited_candidates):
+                claim_valid = False
+                v3_pass = False
+                unverified_numbers.append(f"{c_num} in claim '{claim_text}'")
+
+        # Also verify numbers array if present
+        clean_numbers = []
         for num_obj in f.get("numbers", []):
             if isinstance(num_obj, (int, float)):
                 val = float(num_obj)
-                unit = ""
-                num_dict = {"value": val, "unit": "mm/s", "label": "value", "experiment_id": cited_rows[0]["id"] if cited_rows else "unknown"}
             elif isinstance(num_obj, dict):
                 val = num_obj.get("value")
-                unit = (num_obj.get("unit") or "").lower().strip()
-                num_dict = num_obj
             else:
                 continue
 
             if val is None:
                 continue
 
-            # Check if this numerical value matches any numerical field in cited rows
-            matched = False
-            unit = (num_obj.get("unit") or "").lower().strip()
-
-            for row in cited_rows:
-                candidates = []
-                if unit == "%":
-                    candidates = [row.get("o2_percent")]
-                elif unit == "kpa":
-                    candidates = [row.get("pressure_kpa")]
-                elif unit == "mm/s":
-                    candidates = [row.get("spread_rate_mm_s")]
-                elif unit == "cm/s":
-                    candidates = [row.get("flow_velocity_cm_s")]
-                elif unit == "mm":
-                    candidates = [row.get("thickness_mm")]
-                else:
-                    candidates = [
-                        row.get("o2_percent"),
-                        row.get("pressure_kpa"),
-                        row.get("flow_velocity_cm_s"),
-                        row.get("spread_rate_mm_s"),
-                        row.get("thickness_mm"),
-                    ]
-
-                for c in candidates:
-                    if c is not None:
-                        # 1% relative tolerance or 0.05 absolute tolerance
-                        if abs(c - val) <= max(0.05, abs(c) * 0.01):
-                            matched = True
-                            break
-                if matched:
-                    break
-
-            if matched:
+            if _matches_any_candidate(float(val), cited_candidates):
                 clean_numbers.append(num_obj)
             else:
+                claim_valid = False
                 v3_pass = False
-                unverified_numbers.append(f"{val} ({num_obj.get('label', 'unlabeled')})")
+                unverified_numbers.append(f"{val} in numbers array")
 
         f["numbers"] = clean_numbers
+
+        # Bug A-02: If claim text or numbers contain ungrounded numbers, fail V-3 and strip the claim
+        if claim_valid:
+            clean_findings.append(f)
+        else:
+            added_limitations.append(f"Claim stripped due to ungrounded numbers: {claim_text}")
+
+    answer["findings"] = clean_findings
+    if not v3_pass:
+        overall_passed = False
 
     checks.append({
         "id": "V-3",
         "name": "Number Grounding",
-        "status": "pass" if v3_pass else "warn",
+        "status": "pass" if v3_pass else "fail",
         "message": "All stated numbers match empirical data values in cited rows."
         if v3_pass
         else f"Ungrounded numbers detected & stripped: {', '.join(unverified_numbers)}",

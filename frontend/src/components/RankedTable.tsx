@@ -284,12 +284,12 @@ export const RankedTable: React.FC<RankedTableProps> = ({
 
       {/* Insufficient Evidence Section (FR-4) */}
       {insufficient.length > 0 && (
-        <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2 opacity-60">
+        <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2 text-[var(--text-secondary)]">
           <div className="flex items-center gap-1.5 text-xs font-mono text-[var(--text-tertiary)]">
             <AlertTriangle className="h-3.5 w-3.5 text-[var(--text-tertiary)]" />
             <span>Insufficient Evidence (Σ w_i &lt; 1.0)</span>
             <span className="text-[var(--text-disabled)] italic font-sans">
-              — Zero hallucination rule: no score assigned
+              — Every number verified against cited data.
             </span>
           </div>
 

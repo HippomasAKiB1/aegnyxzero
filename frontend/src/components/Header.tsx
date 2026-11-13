@@ -45,6 +45,9 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="font-mono text-xs text-[var(--text-tertiary)] border border-[var(--border-subtle)] px-1.5 py-0.2 rounded-[4px]">
             {datasetVersion || 'v1.0'}
           </span>
+          <span className="hidden sm:inline-flex items-center text-[10px] font-mono uppercase tracking-wider text-[var(--ember)] border border-[var(--ember)]/30 bg-[var(--ember-muted)] px-1.5 py-0.5 rounded-[4px]">
+            PROTOTYPE DATA - NASA PDFs
+          </span>
         </div>
 
         {/* Center / Right: Flat Status Pill and Navigation Actions */}
