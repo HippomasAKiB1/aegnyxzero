@@ -68,6 +68,7 @@ class HealthResponse(BaseModel):
     status: str
     dataset_version: str
     mode: str
+    experiments_count: Optional[int] = None
 
 
 # ─── Risk ranking schemas ─────────────────────────────────────────

@@ -145,7 +145,7 @@ app.add_middleware(
 
 
 @app.get("/health", response_model=HealthResponse)
-def health():
+def health(db: Session = Depends(get_db)):
     """Liveness probe + dataset version + mode (PRD §14.2)."""
     settings = get_settings()
     custom_mode = os.getenv("MODE") or os.getenv("APP_MODE")
@@ -154,7 +154,16 @@ def health():
     else:
         is_demo = os.getenv("DEMO_MODE", "false").lower() in ("true", "1", "yes")
         mode = "demo" if is_demo else "live"
-    return {"status": "ok", "dataset_version": settings.dataset_version, "mode": mode}
+    count = db.query(Experiment).count()
+    if count == 0:
+        _auto_seed_db()
+        count = db.query(Experiment).count()
+    return {
+        "status": "ok",
+        "dataset_version": settings.dataset_version,
+        "mode": mode,
+        "experiments_count": count,
+    }
 
 
 @app.get("/sources", response_model=list[SourceResponse])
@@ -186,6 +195,8 @@ def list_experiments(
     db: Session = Depends(get_db),
 ):
     """Return experiments with optional filtering (PRD §14.2)."""
+    if db.query(Experiment).count() == 0:
+        _auto_seed_db()
     query = db.query(Experiment)
 
     if material_class and material_class.lower() != "all":
@@ -242,6 +253,8 @@ def risk_ranking(body: RiskRankingRequest, db: Session = Depends(get_db)):
     """
     Compute ranked risk for all materials given user conditions (PRD §14.2).
     """
+    if db.query(Experiment).count() == 0:
+        _auto_seed_db()
     experiments = db.query(Experiment).all()
     rows = [_orm_to_row(exp) for exp in experiments]
 
@@ -283,6 +296,8 @@ def coverage(body: CoverageRequest, db: Session = Depends(get_db)):
     """
     Compute O2 × pressure parameter coverage grid and closeness assessment (PRD US-5, FR-5).
     """
+    if db.query(Experiment).count() == 0:
+        _auto_seed_db()
     experiments = db.query(Experiment).all()
     res = compute_coverage(
         experiments=experiments,
