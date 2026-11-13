@@ -315,13 +315,17 @@ async def ask(body: AskRequest, db: Session = Depends(get_db)):
     Plain-English safety QA with cited evidence and deterministic validation (PRD US-6, FR-6).
     """
     if os.getenv("USE_V2_PIPELINE", "false").lower() == "true":
-        from .pipeline_v2 import run_pipeline
-        cond_dict = body.conditions.model_dump() if body.conditions else {}
-        result = await run_pipeline(question=body.question, conditions=cond_dict)
+        try:
+            from .pipeline_v2 import run_pipeline
+            cond_dict = body.conditions.model_dump() if body.conditions else {}
+            return await run_pipeline(question=body.question, conditions=cond_dict)
+        except Exception as e:
+            print(f"Pipeline V2 execution failed: {e}. Falling back to deterministic engine.")
+            cond_dict = body.conditions.model_dump() if body.conditions else None
+            return handle_ask_query(body.question, cond_dict, db)
     else:
         cond_dict = body.conditions.model_dump() if body.conditions else None
-        result = handle_ask_query(body.question, cond_dict, db)
-    return result
+        return handle_ask_query(body.question, cond_dict, db)
 
 
 @app.post("/feedback", response_model=FeedbackResponse)

@@ -12,3 +12,7 @@ services:
         value: "false"
       - key: USE_V2_PIPELINE
         value: "true"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

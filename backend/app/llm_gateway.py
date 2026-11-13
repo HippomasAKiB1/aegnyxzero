@@ -138,6 +138,9 @@ async def chat_completion(
         # Check API key requirement
         api_key = settings.get_api_key_for_provider(provider_name)
         if provider_name == "ollama":
+            # In cloud environments (Render, etc.), skip local Ollama daemon
+            if os.getenv("RENDER") or os.getenv("PORT") or os.getenv("VERCEL"):
+                continue
             # Local Ollama does not require an API key; AsyncOpenAI requires a non-empty string
             api_key = api_key or "ollama"
         elif not api_key:
